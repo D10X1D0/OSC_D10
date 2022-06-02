@@ -1,2 +1,4 @@
-{"OSCBridge": true, "OSCtoButtplug": true,"OSCPass": false,"OSCBridgeListenIP1": "127.0.0.1",
-  "OSCBListenPort1": "9001","InterfaceWS": "127.0.0.1:12345"}
+{"OSCBridge": true, "OSCtoButtplug": false,"OSCPass": true,
+  "OSCBridgeListenIP": "127.0.0.1", "OSCBListenPort": "9001",
+  "InterfaceWS": "127.0.0.1:12345",
+  "OSCSendIP": "127.0.0.1", "OSCSendPort": 9000}
