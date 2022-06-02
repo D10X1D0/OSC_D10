@@ -82,14 +82,11 @@ def device_removed(emitter, dev: ButtplugClientDevice) -> None:
 
 
 async def deviceprobe(item, dev: ButtplugClient) -> None:
-    # look for a toy that matches the name passed, and if it is pressent execute the command
+    # look for a toy that matches the name passed, and if it is present execute the command
     if len(dev.devices) == 0:
         printbpcoms(" Device not connected : ")
     else:
         for key in dev.devices.keys():
-            # print(key)
-            # print(item)
-            # print(item[0][0])
             command = item[0][1][0]
             name = item[0][0]
             if dev.devices[key].name == name:
@@ -136,8 +133,9 @@ async def work(mainconfig, q_in_l) -> None:
     while True:
         try:
             """ We setup a client object to talk with Interface and it's connection"""
-            client = ButtplugClient("Test Client OSC")
-            connector = ButtplugClientWebsocketConnector("ws://127.0.0.1:12345")
+            client = ButtplugClient("OSC_D10")
+            ws = "ws://" + mainconfig["InterfaceWS"]
+            connector = ButtplugClientWebsocketConnector(ws)
             """Handler functions to catch when a device connects and disconnects from the server"""
             client.device_added_handler += device_added
             client.device_removed_handler += device_removed
@@ -146,7 +144,7 @@ async def work(mainconfig, q_in_l) -> None:
             printbpcoms("Could connect to  Interface server")
             break
         except ButtplugClientConnectorError as e:
-            printbpcoms("Could not connect to Interface server, retrying in 1s: {}")
+            printbpcoms("Could not connect to Interface server, retrying in 1s")
             await asyncio.sleep(1)
     try:
         await client.start_scanning()
@@ -159,8 +157,8 @@ async def work(mainconfig, q_in_l) -> None:
         printbpcoms("Exiting butplugcoms")
         await client.stop_scanning()
         await client.disconnect()
-    except:
-        printbpcoms("something went wrong")
+    except RuntimeError as e:
+        printbpcoms("something went wrong" + str(e))
 
 
 async def butplugcoms(mainconfig, q_in: janus.AsyncQueue[int], q_state: janus.AsyncQueue[int]) -> None:

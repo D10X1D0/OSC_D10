@@ -1,1 +1,2 @@
-{"OSCBridge": true, "OSCtoButtplug": true,"OSCPass": false}
+{"OSCBridge": true, "OSCtoButtplug": true,"OSCPass": false,"OSCBridgeListenIP1": "127.0.0.1",
+  "OSCBListenPort1": "9001","InterfaceWS": "127.0.0.1:12345"}

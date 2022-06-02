@@ -8,7 +8,7 @@ from pythonosc import (osc_server, udp_client, dispatcher)
 from printcolors import bcolors
 
 
-def sendosc(parameter: str, value):
+def sendosc(parameter: str, value) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip", default="127.0.0.1",
                         help="The ip of the OSC server")
@@ -21,7 +21,7 @@ def sendosc(parameter: str, value):
     client.send_message(parameter, value)
 
 
-def sendtoque(name, qosc: queue.Queue, value):
+def sendtoque(name, qosc: queue.Queue, value) -> None:
     printoscbridge("Sending to queue")
     valuelist = (name, value)
     print(valuelist)
@@ -30,7 +30,7 @@ def sendtoque(name, qosc: queue.Queue, value):
     qosc.join()
 
 
-def command_handlerbp(command, args, value):
+def command_handlerbp(command, args, value) -> None:
     sendtoque(args[0], args[1], value)
 
 
@@ -58,7 +58,7 @@ def readjsonfile(filename: str):
         return False
 
 
-def printoscbridge(msg):
+def printoscbridge(msg) -> None:
     print(bcolors.HEADER + "OSCB : " + bcolors.ENDC + str(msg))
 
 
@@ -71,7 +71,7 @@ def loadcommandlist(mainconfig, disp: dispatcher.Dispatcher, q: janus.SyncQueue[
         return False
 
 
-def populatedispatcher(disp: dispatcher.Dispatcher, comands, q:janus.SyncQueue[int]):
+def populatedispatcher(disp: dispatcher.Dispatcher, comands, q:janus.SyncQueue[int]) -> None:
     # populating dispatcher with commands to listen for and send to buttplug
     # the mapping is stored in sets of 3
     if len(comands) % 3 == 0:
@@ -79,23 +79,29 @@ def populatedispatcher(disp: dispatcher.Dispatcher, comands, q:janus.SyncQueue[i
         for i in range(len(comands) // 3):
             if i != 0:
                 a = i * 3
-                printoscbridge(comands[a] + " _ mapped to_ "
-                               + str(comands[a + 1]) + str(comands[a + 2]))
-                disp.map(comands[a], command_handlerbp,
-                         (comands[a + 1], comands[a + 2]), q)
+                printoscbridge(comands[a] + " _ mapped to_ " + str(comands[a + 1]) + str(comands[a + 2]))
+                disp.map(comands[a], command_handlerbp, (comands[a + 1], comands[a + 2]), q)
             else:
                 printoscbridge(
-                    comands[i] + " _ mapped to_ "
-                    + str(comands[i + 1] + str(comands[i + 2])))
-                disp.map(comands[i], command_handlerbp,
-                         (comands[i + 1], comands[i + 2]), q)
+                    comands[i] + " _ mapped to_ " + str(comands[i + 1] + str(comands[i + 2])))
+                disp.map(comands[i], command_handlerbp, (comands[i + 1], comands[i + 2]), q)
     else:
         printoscbridge(bcolors.FAIL +
                        "The number of entrys in OSCtoButtplug -> parameterMaping.json is not multiple of 3"
                        + bcolors.ENDC)
 
 
-def oscbridge(mainconfig, q_state: janus.SyncQueue[int], qsinc: janus.SyncQueue[int]):
+def readconfig(config, key, defaultvalue):
+    try:
+        value = config[key]
+        printoscbridge(str(key) + " from Mainconfig file set to " + str(value))
+    except:
+        value = defaultvalue
+        printoscbridge("Can't read " + str(key) + " from Mainconfig file set to " + str(value))
+    return value
+
+
+def oscbridge(mainconfig, q_state: janus.SyncQueue[int], qsinc: janus.SyncQueue[int]) -> None:
     printoscbridge("running bridge ")
     dispatcherl = dispatcher.Dispatcher()
     parametermaping = loadcommandlist(mainconfig, dispatcherl, qsinc)
@@ -109,11 +115,14 @@ def oscbridge(mainconfig, q_state: janus.SyncQueue[int], qsinc: janus.SyncQueue[
     printoscbridge("Parameter Maping file loaded, continuing...")
 
     "osc server config, the one that's listening"
+    ip = readconfig(mainconfig, "OSCBridgeListenIP", "127.0.0.1")
+    port = readconfig(mainconfig, "OSCBListenPort", 9001)
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--ip",
-                        default="127.0.0.1", help="The ip to listen on")
+                        default=ip, help="The ip to listen on")
     parser.add_argument("--port",
-                        type=int, default=9001, help="The port to listen on")
+                        type=int, default=port, help="The port to listen on")
     args = parser.parse_args()
 
     server = osc_server.ThreadingOSCUDPServer(
