@@ -1,6 +1,4 @@
 import json
-import queue
-
 import janus
 import pythonosc.udp_client
 from pythonosc import (osc_server, udp_client, dispatcher)
@@ -29,7 +27,7 @@ def sendosc(client: pythonosc.udp_client.SimpleUDPClient, parameter: str, value)
     client.send_message(parameter, value)
 
 
-def sendtoque(name, qosc: queue.Queue, value) -> None:
+def sendtoque(name, qosc: janus.SyncQueue[int], value) -> None:
     # printoscbridge("Sending to queue")
     valuelist = (name, value)
     # printoscbridge(valuelist)
