@@ -143,7 +143,7 @@ async def work(mainconfig, q_in_l) -> None:
             await client.connect(connector)
             printbpcoms("Could connect to  Interface server")
             break
-        except ButtplugClientConnectorError as e:
+        except ButtplugClientConnectorError:
             printbpcoms("Could not connect to Interface server, retrying in 1s")
             await asyncio.sleep(1)
     try:
@@ -162,7 +162,6 @@ async def work(mainconfig, q_in_l) -> None:
 
 
 async def butplugcoms(mainconfig, q_in: janus.AsyncQueue[int], q_state: janus.AsyncQueue[int]) -> None:
-    prefix = bcolors.OKCYAN + "btcoms : " + bcolors.ENDC
     printbpcoms("running butplugcoms")
     task = asyncio.create_task(work(mainconfig, q_in))
     await task
