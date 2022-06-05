@@ -1,44 +1,31 @@
-import json
 import janus
 import pythonosc.udp_client
 from pythonosc import (osc_server, udp_client, dispatcher)
-
+import myclasses
 from printcolors import bcolors
-# default contents of parameterMaping.json
-# OSCparameter, "device name", [command]
-# OSCparameter, "device name", [command, motor index]
 
-parameterMaping = [
-  "/avatar/parameters/pContact1", "Lovense Edge", ["SingleMotorVibrateCmd", 0],
-  "/avatar/parameters/pContact2", "Lovense Edge", ["SingleMotorVibrateCmd", 1],
-  "/avatar/parameters/Mouth", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd"],
-  "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["SingleMotorVibrateCmd", 0],
-  "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["SingleMotorVibrateCmd", 1]
-]
-
-# default contents of passMaping.json
-# OSC origin adress, OSC destination adress
-
-passMaping = [
-  "/avatar/parameters/a", "/avatar/parameters/b"
-]
 
 def sendosc(client: pythonosc.udp_client.SimpleUDPClient, parameter: str, value) -> None:
     client.send_message(parameter, value)
 
 
 def sendtoque(name, qosc: janus.SyncQueue[int], value) -> None:
-    # printoscbridge("Sending to queue")
     valuelist = (name, value)
-    # printoscbridge(valuelist)
-    # printoscbridge(qosc)
+    # printoscbridge("Sending to butplug")
     qosc.put(valuelist)
+    # printoscbridge("waiting for butplug")
     qosc.join()
 
 
 def retransmit(cli, param, value) -> None:
     sendosc(cli, param, value)
     printoscbridge("retransmitting : " + str(param) + " " + str(value))
+
+
+def process(dest: str, param, value) -> None:
+    printoscbridge("process")
+    #printoscbridge("process" + str(dest) + "__" + str(param) + "__" + str(value))
+    # param [oscadress, oscclient]
 
 
 def command_handlerbp(command, args, value):
@@ -49,51 +36,6 @@ def command_handlerpass(command, args, value):
     retransmit(args[0], args[1], value)
 
 
-def readparametermaping():
-    try:
-        with open('parameterMaping.json') as f:
-            data = json.load(f)
-            # print(type(data))
-            # print(str(data))
-            return data
-    except Exception as e:
-        printoscbridge("Could not load parameterMaping.json")
-        printoscbridge("Exception : " + str(e))
-        printoscbridge("Shutting down oscbridge, no osc messages found in configuration files to listen for.")
-        return False
-
-
-def tryreadjson(filename):
-    with open(filename) as f:
-        data = json.load(f)
-        return data
-
-
-def readjsonfile(filename: str, defaultvalue):
-    try:
-        data = tryreadjson(filename)
-        return data
-    except OSError as e:
-        printoscbridge("Could not load " + filename)
-        createdefaultfile(filename, defaultvalue)
-        data = tryreadjson(filename)
-        return data
-    except Exception as e:
-        printoscbridge("Could not load " + filename)
-        printoscbridge("Exception : " + str(e))
-        return False
-
-
-def createdefaultfile(filename, data):
-    printwarningoscb("Creating default config file: " + filename)
-    try:
-        with open(filename, 'w') as f:
-            # print(str(data))
-            json.dump(data, f)
-    except:
-        printwarningoscb("Could not create a default config file for " + filename)
-
-
 def printoscbridge(msg) -> None:
     print(bcolors.HEADER + "OSCB : " + bcolors.ENDC + str(msg))
 
@@ -102,25 +44,74 @@ def printwarningoscb(msg: str):
     printoscbridge(bcolors.WARNING + msg + bcolors.ENDC)
 
 
-def loadcommandlist(mainconfig, disp: dispatcher.Dispatcher, q: janus.SyncQueue[int],
-                    sendclient: pythonosc.udp_client.SimpleUDPClient):
+def loadcommandlist(mainconfig: myclasses.Mainconfig, oscserverconfig: myclasses.OscServerData,
+                    disp: dispatcher.Dispatcher, q: janus.SyncQueue[int],
+                    sendclient: pythonosc.udp_client.SimpleUDPClient, q_proc: janus.SyncQueue[int]):
     dispatcherpopulated = False
+    # read configuration and populate the dispatcher
     if mainconfig["OSCtoButtplug"]:
-        # read configuration and populate the dispatcher
-        butplugmaping = readjsonfile("parameterMaping.json", parameterMaping)
+        butplugmaping = oscserverconfig.buttplug
         populatedispatcherbp(disp, butplugmaping, q)
         dispatcherpopulated = True
     if mainconfig["OSCPass"]:
-        passmaping = readjsonfile("passMaping.json", passMaping)
+        passmaping = oscserverconfig.retransmit
         populatedispatcheroscpass(disp, passmaping, sendclient)
         dispatcherpopulated = True
+    #disabled comunication to process, no functions need data in yet
+    """ disabled, no need for data back to oscprocess.process yet.
+    if mainconfig["OSCprocess"]:
+        processmaping = oscserverconfig.proces
+        populateprocessmaping(disp, processmaping, sendclient, q_proc)
+        dispatcherpopulated = True
+    """
     return dispatcherpopulated
 
 
-def populatedispatcheroscpass(disp: dispatcher.Dispatcher, comands,cli: pythonosc.udp_client.SimpleUDPClient) -> None:
-    # populating the dispatcher with commands to be passed back after some processing
+def queuesend(queue: janus.SyncQueue[int], data) -> None:
+    printoscbridge("sending to queque")
+    queue.put(data)
+    printoscbridge("waiting for the queque to be red")
+    queue.join()
+    printoscbridge("queque done...")
+
+
+def command_handleprocess(command, args, value):
+    # args[0] [oscadress, oscclient]
+    #process(command, args, value)
+    printoscbridge("command_handleprocess")
+    printoscbridge(command)
+    printoscbridge(value)
+    printoscbridge(args)
+    queuesend(args[0], args[1])
+
+
+def populateprocessmaping(disp: dispatcher.Dispatcher, comands, cli: pythonosc.udp_client.SimpleUDPClient,
+                          q_proc: janus.SyncQueue[int]) -> None:
+    # populating the dispatcher with commands to be custom processed
+    if not comands:
+        printwarningoscb("Could not read any commands to dispatch")
+        exit()
+    if len(comands) % 3 == 0:
+        printoscbridge("Setting nº of mappings for OSCprocess:" + str(len(comands) // 3))
+        for i in range(len(comands) // 3):
+            if i != 0:
+                # any iteration past the first one
+                a = i*3
+            else:
+                # first iteration
+                a = i
+            disp.map(comands[a], command_handleprocess, q_proc, (comands[a + 1], comands[a + 2]))
+            printoscbridge(comands[a] + " _mapped to_ " + str(comands[a + 1]) + " _ " + str(comands[a + 2]))
+    else:
+        printoscbridge(bcolors.FAIL +
+                       "The number of entrys in OSCprocess -> procesMaping.json is not multiple of 2"
+                       + bcolors.ENDC)
+
+
+def populatedispatcheroscpass(disp: dispatcher.Dispatcher, comands, cli: pythonosc.udp_client.SimpleUDPClient) -> None:
+    # populating the dispatcher with commands to be passed back to a different address
     # The mappinggs are stored in sets of 2, [origin, destination]
-    if comands == False:
+    if not comands:
         printwarningoscb("Could not read any commands to dispatch")
         exit()
     if len(comands) % 2 == 0:
@@ -141,7 +132,7 @@ def populatedispatcheroscpass(disp: dispatcher.Dispatcher, comands,cli: pythonos
                        + bcolors.ENDC)
 
 
-def populatedispatcherbp(disp: dispatcher.Dispatcher, comands, q:janus.SyncQueue[int]) -> None:
+def populatedispatcherbp(disp: dispatcher.Dispatcher, comands, q: janus.SyncQueue[int]) -> None:
     # populating dispatcher with commands to listen for and send to buttplug
     # the mapping is stored in sets of 3
     if len(comands) % 3 == 0:
@@ -151,49 +142,36 @@ def populatedispatcherbp(disp: dispatcher.Dispatcher, comands, q:janus.SyncQueue
                 a = i * 3
             else:
                 a = i
-            printoscbridge(comands[a] + " _ mapped to_ " + str(comands[a + 1]) + str(comands[a + 2]))
             disp.map(comands[a], command_handlerbp, (comands[a + 1], comands[a + 2]), q)
+            printoscbridge(comands[a] + " _ mapped to_ " + str(comands[a + 1]) + str(comands[a + 2]))
     else:
         printoscbridge(bcolors.FAIL +
                        "The number of entrys in OSCtoButtplug -> parameterMaping.json is not multiple of 3"
                        + bcolors.ENDC)
 
 
-def readconfig(config, key: str, defaultvalue, deftype):
-    try:
-        value = config[key]
-        printoscbridge(
-            str(key) + " from Mainconfig file set to " + str(value))
-        if not isinstance(value, deftype):
-            value = defaultvalue
-            printwarningoscb(
-                str(key) + "is not a " + str(deftype) + " in the config file , setting it to " + str(value))
-    except:
-        value = defaultvalue
-        printwarningoscb("Can't read " + str(key) + " from Mainconfig file set to default " + str(value))
-    return value
-
-
-def configsendclient(config) -> udp_client.SimpleUDPClient:
-    ip = readconfig(config, "OSCSendIP", "127.0.0.1", str,)
-    port = readconfig(config, "OSCSendPort", 9001, int)
+def configsendclient(mcon:myclasses.MainData) -> udp_client.SimpleUDPClient:
+    ip = mcon["OSCSendIP"]
+    port = mcon["OSCSendPort"]
     return udp_client.SimpleUDPClient(ip, port)
 
 
-def configserver(config, disp: dispatcher.Dispatcher) -> osc_server.ThreadingOSCUDPServer:
-    ip = readconfig(config, "OSCBListenIP", "127.0.0.1", str)
-    port = readconfig(config, "OSCBListenPort", 9000, int)
+def configserver(mcon:myclasses.MainData, disp: dispatcher.Dispatcher) -> osc_server.ThreadingOSCUDPServer:
+    ip = mcon["OSCBListenIP"]
+    port = mcon["OSCBListenPort"]
     return osc_server.ThreadingOSCUDPServer((ip, port), disp)
 
 
-def oscbridge(mainconfig, q_state: janus.SyncQueue[int], qsinc: janus.SyncQueue[int]) -> None:
+def oscbridge(mconfig: myclasses.MainData, q_state: janus.SyncQueue[int],
+              q_BP: janus.SyncQueue[int], q_proc: janus.SyncQueue[int]) -> None:
     printoscbridge("running bridge ")
+    oscbconfig = myclasses.OscServerData
     # osc client for resending data back "oscpass"
-    sendclient = configsendclient(mainconfig)
+    sendclient = configsendclient(mconfig.mainconfig)
     # dispatcher that maps OSC inputs to functions
     dispatcherl = dispatcher.Dispatcher()
     # load mappings and set up mappings from configuration files
-    parametermaping = loadcommandlist(mainconfig, dispatcherl, qsinc, sendclient)
+    parametermaping = loadcommandlist(mconfig.mainconfig, oscbconfig, dispatcherl, q_BP, sendclient, q_proc)
     # createdefaultparametermapingfile()
     sendclient.send_message("/OSCBridge", 1)
     if not parametermaping:
@@ -203,7 +181,7 @@ def oscbridge(mainconfig, q_state: janus.SyncQueue[int], qsinc: janus.SyncQueue[
         exit()
     printoscbridge("Parameter Maping file loaded, continuing...")
     # read the server configuration
-    server = configserver(mainconfig, dispatcherl)
+    server = configserver(mconfig.mainconfig, dispatcherl)
     printoscbridge("Serving on {}".format(server.server_address))
     server.serve_forever()
     sendclient.send_message("/OSCBridge", 0)

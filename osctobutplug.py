@@ -4,6 +4,7 @@ import janus
 from buttplug.client import ButtplugClient, ButtplugClientWebsocketConnector, ButtplugClientConnectorError, \
     ButtplugClientDevice
 
+import myclasses
 from printcolors import bcolors
 
 
@@ -78,38 +79,51 @@ def device_added(emitter, dev: ButtplugClientDevice) -> None:
 
 
 def device_removed(emitter, dev: ButtplugClientDevice) -> None:
-    print("Device removed: ", dev)
+    printbpcoms("Device removed: " + str(dev))
 
 
 async def deviceprobe(item, dev: ButtplugClient) -> None:
     # look for a toy that matches the name passed, and if it is present execute the command
-    if len(dev.devices) == 0:
-        printbpcoms(" Device not connected : ")
-    else:
-        for key in dev.devices.keys():
-            command = item[0][1][0]
-            name = item[0][0]
-            if dev.devices[key].name == name:
-                # print("device is connected")
-                # print(command)
-                device = dev.devices[key]
-                value = item[1]
-                if command == 'VibrateCmd':
-                    printbpcoms(" Vibrating all motors :" + name + "_at speed_" + str(value))
-                    await device.send_vibrate_cmd(value)
+    name = item[0][0]
+    command = item[0][1][0]
+    try:
+        if len(dev.devices) == 0:
+            printbpcoms(" Device not connected : " + name)
+            # we tell the server to stop and scan again.
+            # this will help not to do a full reset after a dropped bt connection
+            await dev.stop_scanning()
+            await dev.start_scanning()
+        else:
+            for key in dev.devices.keys():
 
-                elif command == 'SingleMotorVibrateCmd':
-                    m = item[0][1][1]
-                    printbpcoms("Vibrating single motor : " + name + "_motor nº_" + str(m) + "_at speed_" + str(value))
-                    await device.send_vibrate_cmd({m: value})
-
-                elif command == 'RotateCmd':
-                    print("device rotation")
-                    print(value)
-                    print("to do, not implemented jet")
-            else:
-                printbpcoms("no device found to match this name : " + name)
-
+                if dev.devices[key].name == name:
+                    # print("device is connected")
+                    # print(command)
+                    device = dev.devices[key]
+                    value = item[1]
+                    if command == 'VibrateCmd':
+                        printbpcoms(" Vibrating all motors :" + name + "_at speed_" + str(value))
+                        try:
+                            await device.send_vibrate_cmd(value)
+                        except:
+                            printbpcoms("device error, disconnected?")
+                    elif command == 'SingleMotorVibrateCmd':
+                        m = item[0][1][1]
+                        printbpcoms("Vibrating single motor : " + name + "_motor nº_" + str(m) + "_at speed_" + str(value))
+                        try:
+                            await device.send_vibrate_cmd({m: value})
+                        except:
+                            printbpcoms("device error, disconnected?")
+                    elif command == 'RotateCmd':
+                        print("device rotation")
+                        print(value)
+                        print("to do, not implemented jet")
+                else:
+                    printbpcoms("no device found to match this name : " + name)
+    except RuntimeError as e:
+        printbpcoms("Device error ")
+    except:
+        printbpcoms("Device error ")
 
 async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> None:
     printbpcoms("listening for commands from oscbridge")
@@ -117,39 +131,47 @@ async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) ->
         item = await q_listen.get()
         # printbpcoms("Reading....")
         # printbpcoms(item)
-        await deviceprobe(item, dev)
+        try:
+            await deviceprobe(item, dev)
+        except Exception:
+            print("yes1")
 
 
 async def listenque(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> None:
-    await listenqueloop(q_listen, dev)
-
+    try:
+        await listenqueloop(q_listen, dev)
+    except Exception:
+        print("yes")
 
 def printbpcoms(text) -> None:
     msg = bcolors.OKCYAN + "btcoms : " + bcolors.ENDC + str(text)
     print(msg)
 
 
-async def work(mainconfig, q_in_l) -> None:
+async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], loop: asyncio.events) -> None:
+    printbpcoms("Starging work")
     while True:
         try:
+            printbpcoms("Starging the configuration to connect to Interface")
             """ We setup a client object to talk with Interface and it's connection"""
             client = ButtplugClient("OSC_D10")
-            ws = "ws://" + mainconfig["InterfaceWS"]
+            ws = "ws://" + str(mainconfig.mainconfig["InterfaceWS"])
             connector = ButtplugClientWebsocketConnector(ws)
             """Handler functions to catch when a device connects and disconnects from the server"""
             client.device_added_handler += device_added
             client.device_removed_handler += device_removed
             """Try to connect to the server"""
+            printbpcoms("Trying to  connect to  Interface server")
             await client.connect(connector)
             printbpcoms("Could connect to  Interface server")
             break
         except ButtplugClientConnectorError:
             printbpcoms("Could not connect to Interface server, retrying in 1s")
             await asyncio.sleep(1)
+
     try:
         await client.start_scanning()
         """Start the queque listening"""
-
         task2 = asyncio.create_task(listenque(q_in_l, client))
         await task2
 
@@ -159,10 +181,7 @@ async def work(mainconfig, q_in_l) -> None:
         await client.disconnect()
     except RuntimeError as e:
         printbpcoms("something went wrong" + str(e))
+    except Exception as e:
+        printbpcoms("something went wrong" + str(e))
+    printbpcoms("work done")
 
-
-async def butplugcoms(mainconfig, q_in: janus.AsyncQueue[int], q_state: janus.AsyncQueue[int]) -> None:
-    printbpcoms("running butplugcoms")
-    task = asyncio.create_task(work(mainconfig, q_in))
-    await task
-    printbpcoms("Finished sever work")
