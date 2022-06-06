@@ -50,12 +50,20 @@ async def startrespond(q_com, cli: udp_client.SimpleUDPClient) -> None:
             taskname = item[1][0]
             if taskname == "respond":
                 oscvalue = item[0]
+                if isinstance(oscvalue, float):
+                    #if we get a float, we round it to 2 decimals
+                    oscvalue = round(oscvalue, 2)
+                # printprocesserr(str(oscvalue))
                 datain = item[1][1][0]
                 if oscvalue == datain:
                     dataout = item[1][1][1]
                     adressout = item[1][1][2]
+                    if isinstance(dataout, float):
+                        dataout = round(dataout, 2)
                     cli.send_message(adressout, dataout)
-                    printprocess("respond : " + str(oscvalue) + " : " + str(adressout) + " : " + str(dataout))
+                    printprocess("respond : " + str(oscvalue)
+                                 + " : " + str(adressout)
+                                 + " : " + str(dataout) + str(type(dataout)))
             else:
                 printprocess("NOT respond : " + str(taskname))
             q_com.task_done()

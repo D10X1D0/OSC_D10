@@ -2,11 +2,11 @@ import json
 from dataclasses import dataclass
 from printcolors import bcolors
 
-maindata = {
+maindefault = {
     "OSCBridge": False,
-    "OSCBListenIP": "127.0.0.1", "OSCBListenPort": 9000,
+    "OSCBListenIP": "127.0.0.1", "OSCBListenPort": 9001,
     "OSCPass": False,
-    "OSCSendIP": "127.0.0.1", "OSCSendPort": 9001,
+    "OSCSendIP": "127.0.0.1", "OSCSendPort": 9000,
     "OSCtoButtplug": False,
     "InterfaceWS": "127.0.0.1:12345",
     "OSCprocess": False
@@ -14,7 +14,7 @@ maindata = {
 # default contents of parameterMaping.json
 # OSCparameter, "device name", [command]
 # OSCparameter, "device name", [command, motor index]
-parameterMaping = [
+parameterMapingdefault = [
     "/avatar/parameters/pContact1", "Lovense Edge", ["SingleMotorVibrateCmd", 0],
     "/avatar/parameters/pContact2", "Lovense Edge", ["SingleMotorVibrateCmd", 1],
     "/avatar/parameters/Mouth", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd"],
@@ -23,11 +23,11 @@ parameterMaping = [
 ]
 # default contents of passMaping.json
 # OSC origin adress, OSC destination adress
-passMaping = [
+passMapingdefault = [
     "/avatar/parameters/a", "/avatar/parameters/b"
 ]
 # default contents of processMaping
-processMaping = [
+processMapingdefault = [
     "/avatar/parameters/Testa", "pulse", [30, 1],
     "/avatar/parameters/Testa", "pulse", [15, 0],
     "/avatar/parameters/Testc", "pulse", [10, False],
@@ -75,11 +75,11 @@ def readjsonfile(filename: str, defaultvalue):
 
 @dataclass(frozen=True, order=True)
 class MainData:
-    mainconfig = readjsonfile("Mainconfig.json", maindata)
+    mainconfig = readjsonfile("Mainconfig.json", maindefault)
 
 
 @dataclass(frozen=True, order=True)
 class OscServerData:
-    retransmit = readjsonfile("retransmitMaping.json", passMaping)
-    proces = readjsonfile("procesMaping.json", processMaping)
-    buttplug = readjsonfile("parameterMaping.json", parameterMaping)
+    retransmit = readjsonfile("retransmitMaping.json", passMapingdefault)
+    proces = readjsonfile("procesMaping.json", processMapingdefault)
+    buttplug = readjsonfile("parameterMaping.json", parameterMapingdefault)

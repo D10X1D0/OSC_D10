@@ -11,7 +11,7 @@ from printcolors import bcolors
 
 
 def printmain(msg):
-    print(bcolors.HEADER + "Main:" + bcolors.ENDC + msg)
+    print(bcolors.HEADER + "Main: " + bcolors.ENDC + msg)
 
 
 def printmainwarning(msg):
@@ -72,8 +72,8 @@ async def main():
             await task
         except asyncio.CancelledError:
             pass
-    except:
-        print("sock")
+    except Exception as e:
+        print("Error : " + str(e))
 try:
     asyncio.run(main())
 except KeyboardInterrupt:

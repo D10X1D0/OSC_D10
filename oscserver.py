@@ -44,7 +44,7 @@ def printwarningoscb(msg: str):
     printoscbridge(bcolors.WARNING +str(msg) + bcolors.ENDC)
 
 
-def loadcommandlist(mainconfig: myclasses.Mainconfig, oscserverconfig: myclasses.OscServerData,
+def loadcommandlist(mainconfig: myclasses.MainData.mainconfig, oscserverconfig: myclasses.OscServerData,
                     disp: dispatcher.Dispatcher, q: janus.SyncQueue[int],
                     sendclient: pythonosc.udp_client.SimpleUDPClient, q_proc: janus.SyncQueue[int]) -> bool:
     # read configuration and populate the dispatcher
@@ -162,19 +162,19 @@ def populatedispatcherbp(disp: dispatcher.Dispatcher, comands, q: janus.SyncQueu
     return items
 
 
-def configsendclient(mcon:myclasses.MainData) -> udp_client.SimpleUDPClient:
+def configsendclient(mcon:myclasses.MainData.mainconfig) -> udp_client.SimpleUDPClient:
     ip = mcon["OSCSendIP"]
     port = mcon["OSCSendPort"]
     return udp_client.SimpleUDPClient(ip, port)
 
 
-def configserver(mcon:myclasses.MainData, disp: dispatcher.Dispatcher) -> osc_server.ThreadingOSCUDPServer:
+def configserver(mcon:myclasses.MainData.mainconfig, disp: dispatcher.Dispatcher) -> osc_server.ThreadingOSCUDPServer:
     ip = mcon["OSCBListenIP"]
     port = mcon["OSCBListenPort"]
     return osc_server.ThreadingOSCUDPServer((ip, port), disp)
 
 
-def oscbridge(mconfig: myclasses.MainData, q_state: janus.SyncQueue[int],
+def oscbridge(mconfig: myclasses.MainData.mainconfig, q_state: janus.SyncQueue[int],
               q_BP: janus.SyncQueue[int], q_proc: janus.SyncQueue[int]) -> None:
     try:
         printoscbridge("running bridge ")
