@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from printcolors import bcolors
 
-Mainconfig = {
+maindata = {
     "OSCBridge": False,
     "OSCBListenIP": "127.0.0.1", "OSCBListenPort": 9000,
     "OSCPass": False,
@@ -31,7 +31,9 @@ processMaping = [
     "/avatar/parameters/Testa", "pulse", [30, 1],
     "/avatar/parameters/Testa", "pulse", [15, 0],
     "/avatar/parameters/Testc", "pulse", [10, False],
-    "/avatar/parameters/Testc", "pulse", [15, True]
+    "/avatar/parameters/Testc", "pulse", [15, True],
+    "/avatar/parameters/Testd", "respond", [1, True, "/avatar/parameters/Testda"],
+    "/avatar/parameters/Testd", "respond", [0.5, False, "/avatar/parameters/Testda"]
 ]
 
 
@@ -73,7 +75,7 @@ def readjsonfile(filename: str, defaultvalue):
 
 @dataclass(frozen=True, order=True)
 class MainData:
-    mainconfig = readjsonfile("Mainconfig.json", Mainconfig)
+    mainconfig = readjsonfile("Mainconfig.json", maindata)
 
 
 @dataclass(frozen=True, order=True)
