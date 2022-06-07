@@ -15,11 +15,11 @@ maindefault = {
 # OSCparameter, "device name", [command]
 # OSCparameter, "device name", [command, motor index]
 parameterMapingdefault = [
-    "/avatar/parameters/pContact1", "Lovense Edge", ["SingleMotorVibrateCmd", 0],
-    "/avatar/parameters/pContact2", "Lovense Edge", ["SingleMotorVibrateCmd", 1],
-    "/avatar/parameters/Mouth", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd"],
-    "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["SingleMotorVibrateCmd", 0],
-    "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["SingleMotorVibrateCmd", 1]
+    "/avatar/parameters/pContact1", "Lovense Edge", ["VibrateCmd", "all"],
+    "/avatar/parameters/pContact2", "Lovense Edge", ["VibrateCmd", [0]],
+    "/avatar/parameters/Mouth", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd", "all"],
+    "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd", [0]],
+    "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd", [1]]
 ]
 # default contents of passMaping.json
 # OSC origin adress, OSC destination adress

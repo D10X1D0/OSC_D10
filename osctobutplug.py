@@ -7,6 +7,10 @@ from buttplug.client import ButtplugClient, ButtplugClientWebsocketConnector, Bu
 import myclasses
 from printcolors import bcolors
 
+def printbpcoms(text) -> None:
+    msg = bcolors.OKCYAN + "btcoms : " + bcolors.ENDC + str(text)
+    print(msg)
+
 
 async def device_added_task(dev: ButtplugClientDevice) -> None:
     # Ok, so we got a new device in! Neat!
@@ -81,6 +85,37 @@ def device_added(emitter, dev: ButtplugClientDevice) -> None:
 def device_removed(emitter, dev: ButtplugClientDevice) -> None:
     printbpcoms("Device removed: " + str(dev))
 
+async def vibratedevice(device: ButtplugClientDevice, items):
+    # await device.send_vibrate_cmd({m: value})
+    name = items[0][0]
+    motorlist = items[0][1][1]
+    value = float(items[1])
+    command = dict()
+    if isinstance(motorlist, str):
+        # I'ts one number, indicating all motors should be set
+        # I found that my device didn't vibrate all motors sending just a float, so I'm setting all motors.
+        nmotors = device.allowed_messages["VibrateCmd"].feature_count
+        try:
+            i = 0
+            while i < nmotors:
+                command[i] = value
+                i += 1
+        except Exception as e:
+            printbpcoms("Exception i_" + str(e))
+        # printbpcoms("single comand : " + str(command))
+    else:
+        # It's a list of numbers, indicating all motors to be set
+        try:
+            for i in motorlist:
+                command[i] = value
+        except Exception as e:
+            printbpcoms("Error : " + str(e))
+    try:
+        # printbpcoms("Command : " + str(command) + " : " + str(type(command)))
+        printbpcoms("Vibrating : " + str(device.name) + " : motor/s : " + str(motorlist) + " : speed :" + str(value))
+        await device.send_vibrate_cmd(command)
+    except Exception as e :
+        printbpcoms("device error, disconnected? " + str(e))
 
 async def deviceprobe(item, dev: ButtplugClient) -> None:
     # look for a toy that matches the name passed, and if it is present execute the command
@@ -95,35 +130,23 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
             await dev.start_scanning()
         else:
             for key in dev.devices.keys():
-
                 if dev.devices[key].name == name:
                     # print("device is connected")
                     # print(command)
                     device = dev.devices[key]
-                    value = item[1]
                     if command == 'VibrateCmd':
-                        printbpcoms(" Vibrating all motors :" + name + "_at speed_" + str(value))
-                        try:
-                            await device.send_vibrate_cmd(value)
-                        except:
-                            printbpcoms("device error, disconnected?")
-                    elif command == 'SingleMotorVibrateCmd':
-                        m = item[0][1][1]
-                        printbpcoms("Vibrating single motor : " + name + "_motor nº_" + str(m) + "_at speed_" + str(value))
-                        try:
-                            await device.send_vibrate_cmd({m: value})
-                        except:
-                            printbpcoms("device error, disconnected?")
+                        await vibratedevice(device, item)
                     elif command == 'RotateCmd':
-                        print("device rotation")
-                        print(value)
-                        print("to do, not implemented jet")
+                        value = item[1]
+                        printbpcoms("device rotation")
+                        printbpcoms(value)
+                        printbpcoms("to do, not implemented jet")
                 else:
                     printbpcoms("no device found to match this name : " + name)
     except RuntimeError as e:
-        printbpcoms("Device error ")
-    except:
-        printbpcoms("Device error ")
+        printbpcoms("Device error " + str(e))
+    except Exception as e:
+        printbpcoms("Device error x " + str(e))
 
 async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> None:
     printbpcoms("listening for commands from oscbridge")
@@ -142,10 +165,6 @@ async def listenque(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> Non
         await listenqueloop(q_listen, dev)
     except Exception:
         print("yes")
-
-def printbpcoms(text) -> None:
-    msg = bcolors.OKCYAN + "btcoms : " + bcolors.ENDC + str(text)
-    print(msg)
 
 
 async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], loop: asyncio.events) -> None:

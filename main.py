@@ -1,8 +1,5 @@
 import asyncio
-import threading
-
 import janus
-
 import myclasses
 import oscprocess
 import oscserver
@@ -38,35 +35,34 @@ async def main():
     qproc: janus.Queue[int] = janus.Queue()
     qstate: janus.Queue[int] = janus.Queue()
     # Queue for comunicating back to osctobutplug
-    qBP: janus.Queue[int] = janus.Queue()
+    qbp: janus.Queue[int] = janus.Queue()
     loop = asyncio.get_running_loop()
     try:
         if config.mainconfig["OSCBridge"] or config.mainconfig["OSCPass"] or config.mainconfig["OSCprocess"]:
             """ 
                 t1 will be the OSC server listening for commands
-                the osc server is not async, so we run it inside a separate thread.
+                the osc server is not async, so we run it inside a separate thread/executor.
                 and get info back with a sync/async janus.Queue 
             """
-            #t1 = threading.Thread(target=oscserver.oscbridge, args=(config, qstate.sync_q, qsinc.sync_q))
-            #t1.start()
-            bridge = loop.run_in_executor(None, oscserver.oscbridge, config, qstate.sync_q, qBP.sync_q, qproc.sync_q)
+            # t1 = threading.Thread(target=oscserver.oscbridge, args=(config, qstate.sync_q, qsinc.sync_q))
+            # t1.start()
+            bridge = loop.run_in_executor(None, oscserver.oscbridge, config, qstate.sync_q, qbp.sync_q, qproc.sync_q)
             # OSCprocess async side
             if config.mainconfig["OSCprocess"]:
                 loop.create_task(oscprocess.process(qproc.async_q, config, loop), name="OSCprocess")
-                #print("y")
         else:
             printmainwarning(
                 "Skipping OSCBridge, and OSCToButtplug, OSCBridge = true to enable it in Mainconfig.json")
         if config.mainconfig["OSCtoButtplug"]:
             # osctobutplug will be the buttplug client/connector to talk to Interface and control devices.
-            #loop.create_task(osctobutplug.butplugcoms, config, qBP.async_q, qstate.async_q)
-            taskwork= loop.create_task(osctobutplug.work(config, qBP.async_q, loop), name="OSCtoButtplug")
+            # loop.create_task(osctobutplug.butplugcoms, config, qBP.async_q, qstate.async_q)
+            taskwork = loop.create_task(osctobutplug.work(config, qbp.async_q, loop), name="OSCtoButtplug")
             # asyncio.create_task(osctobutplug.work(config, qBP.async_q, loop))
             # osctobutplug.butplugcoms(config, qBP.async_q, qstate.async_q)
         else:
             printmainwarning(
                   "Skipping OSCToButtplug, OSCtoButtplug = true to enable it in Mainconfig.json")
-        # dummy task to keep the mail loop running
+        # dummy task to keep the main loop running
         task = asyncio.create_task(cancel_me())
         try:
             await task
