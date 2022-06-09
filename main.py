@@ -68,7 +68,7 @@ async def main():
             await task
         except asyncio.CancelledError:
             pass
-    except Exception as e:
+    except Exception as exc:
         print("Error : " + str(e))
 try:
     asyncio.run(main())

@@ -7,6 +7,7 @@ from buttplug.client import ButtplugClient, ButtplugClientWebsocketConnector, Bu
 import myclasses
 from printcolors import bcolors
 
+
 def printbpcoms(text) -> None:
     msg = bcolors.OKCYAN + "btcoms : " + bcolors.ENDC + str(text)
     print(msg)
@@ -35,21 +36,7 @@ async def device_added_task(dev: ButtplugClientDevice) -> None:
 
     if "VibrateCmd" in dev.allowed_messages.keys():
         printbpcoms("Device bibrates and has " + str(dev.allowed_messages["VibrateCmd"].feature_count) + " motors")
-        # If we see that "VibrateCmd" is an allowed message, it means the
-        # device can vibrate. We can call send_vibrate_cmd on the device and
-        # it'll tell the server to make the device start vibrating.
-        """
-        await dev.send_vibrate_cmd(0.5)
-        # We let it vibrate at 50% speed for 1 second, then we stop it.
-        "await asyncio.sleep(1)
-        # We can use send_stop_device_cmd to stop the device from vibrating, as
-        # well as anything else it's doing. If the device was vibrating AND
-        # rotating, we could use send_vibrate_cmd(0) to just stop the
-        # vibration.
-        "await dev.send_stop_device_cmd()
-        """
 
-        # await dev.send_vibrate_cmd([0,0.2])
     if "LinearCmd" in dev.allowed_messages.keys():
         printbpcoms("Device has linear motion, not implemented to control jet")
         # If we see that "LinearCmd" is an allowed message, it means the device
@@ -65,17 +52,7 @@ async def device_added_task(dev: ButtplugClientDevice) -> None:
         """
 
     if "RotateCmd" in dev.allowed_messages.keys():
-        printbpcoms("device rotates, not implemented to control jet")
-        """we make the device rotate at 50% speed clockwise and then counterclockwise"""
-        """
-        await dev.send_rotate_cmd(0.5, True)
-        await asyncio.sleep(1)
-        await dev.send_rotate_cmd(0.0, True)
-        await asyncio.sleep(1)
-        await dev.send_rotate_cmd(0.5, False)
-        await asyncio.sleep(1)
-        await dev.send_rotate_cmd(0.0, True)
-        """
+        printbpcoms("device rotates, not tested yet.")
 
 
 def device_added(emitter, dev: ButtplugClientDevice) -> None:
@@ -84,6 +61,7 @@ def device_added(emitter, dev: ButtplugClientDevice) -> None:
 
 def device_removed(emitter, dev: ButtplugClientDevice) -> None:
     printbpcoms("Device removed: " + str(dev))
+
 
 async def vibratedevice(device: ButtplugClientDevice, items):
     # await device.send_vibrate_cmd({m: value})
@@ -109,13 +87,42 @@ async def vibratedevice(device: ButtplugClientDevice, items):
             for i in motorlist:
                 command[i] = value
         except Exception as e:
-            printbpcoms("Error : " + str(e))
+            printbpcoms("Error in vibratedevice : " + str(e))
     try:
         # printbpcoms("Command : " + str(command) + " : " + str(type(command)))
         printbpcoms("Vibrating : " + str(device.name) + " : motor/s : " + str(motorlist) + " : speed :" + str(value))
         await device.send_vibrate_cmd(command)
     except Exception as e :
         printbpcoms("device error, disconnected? " + str(e))
+
+
+async def rotatedevice(device: ButtplugClientDevice, items) -> None:
+    printbpcoms("to do, not implemented jet")
+    try:
+        name = items[0][0]
+        motorlist = items[0][1][1]
+        value = float(items[1])
+        command = list()
+    except Exception as e:
+        print("Could not read the command to rotatedevice : " + str(e))
+        exit()
+    if isinstance(motorlist, str):
+        if motorlist == "allcw":
+            # clock wise
+            command = (value, True)
+        elif motorlist == "allccw":
+            # conter clock wise
+            command = (value, False)
+        else:
+            # invalid direction to rotate
+            printbpcoms("didn't find the direction to set the rotation: allcw or allccw ")
+            exit()
+        command = tuple(command)
+    try:
+        await device.send_rotate_cmd(command)
+    except Exception as e:
+        printbpcoms("Error trying to rotate device :" + str(name) + " : " + str(e))
+
 
 async def deviceprobe(item, dev: ButtplugClient) -> None:
     # look for a toy that matches the name passed, and if it is present execute the command
@@ -137,12 +144,12 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
                     if command == 'VibrateCmd':
                         await vibratedevice(device, item)
                     elif command == 'RotateCmd':
-                        value = item[1]
-                        printbpcoms("device rotation")
-                        printbpcoms(value)
-                        printbpcoms("to do, not implemented jet")
+                        await rotatedevice(device, item)
+                    elif command == 'StopDeviceCmd':
+                        printbpcoms("Stoping : " + name)
+                        await dev.devices[key].send_stop_device_cmd()
                 else:
-                    printbpcoms("no device found to match this name : " + name)
+                    printbpcoms("no device found to match this name : " + name + " or coomand : " + str(command))
     except RuntimeError as e:
         printbpcoms("Device error " + str(e))
     except Exception as e:
