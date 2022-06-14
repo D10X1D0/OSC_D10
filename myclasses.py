@@ -54,10 +54,10 @@ def createdefaultfile(filename, data):
     printwarning("Creating default config file: " + filename)
     try:
         with open(filename, 'w') as f:
-            # print(str(data))
+            # print(f"{data}")
             json.dump(data, f)
     except:
-        printwarning("Could not create a default config file for " + filename)
+        printwarning("Could not create a default config file for {filename}")
 
 
 def readjsonfile(filename: str, defaultvalue):
@@ -71,8 +71,8 @@ def readjsonfile(filename: str, defaultvalue):
         data = tryreadjson(filename)
         return data
     except Exception as e:
-        print("Could not load " + filename)
-        print("Exception : " + str(e))
+        print(f"Could not load + {filename}")
+        print(f"Exception :  {e}")
         return False
 
 

@@ -19,12 +19,12 @@ def sendtoque(name, qosc: janus.SyncQueue[int], value) -> None:
 
 def retransmit(cli, param, value) -> None:
     sendosc(cli, param, value)
-    printoscbridge("retransmitting : " + str(param) + " " + str(value))
+    printoscbridge(f"retransmitting : {param} {value}")
 
 
 def process(dest: str, param, value) -> None:
     printoscbridge("process")
-    #printoscbridge("process" + str(dest) + "__" + str(param) + "__" + str(value))
+    #printoscbridge(f"process {dest}__{param}"__"{value})
     # param [oscadress, oscclient]
 
 
@@ -37,11 +37,11 @@ def command_handlerpass(command, args, value):
 
 
 def printoscbridge(msg) -> None:
-    print(bcolors.HEADER + "OSCB : " + bcolors.ENDC + str(msg))
+    print(f"{bcolors.HEADER} OSCB : {bcolors.ENDC} {msg}")
 
 
 def printwarningoscb(msg: str):
-    printoscbridge(bcolors.WARNING +str(msg) + bcolors.ENDC)
+    printoscbridge(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
 def loadcommandlist(mainconfig: myclasses.MainData.mainconfig, oscserverconfig: myclasses.OscServerData,
@@ -62,7 +62,7 @@ def loadcommandlist(mainconfig: myclasses.MainData.mainconfig, oscserverconfig: 
         printwarningoscb("No commands for the OSCbridge to listen for.")
         return False
     else:
-        printwarningoscb("Commands for the OSCbridge to listen for : " + str(ncomands))
+        printwarningoscb(f"Commands for the OSCbridge to listen for : {ncomands}")
         return True
 
 
@@ -81,7 +81,7 @@ def command_handleprocess(command, args, value):
     printoscbridge(value)
     printoscbridge(args)
     """
-    queuesend(args[0], [value,args[1]])
+    queuesend(args[0], [value, args[1]])
 
 
 def populateprocessmaping(disp: dispatcher.Dispatcher, comands, cli: pythonosc.udp_client.SimpleUDPClient,
@@ -92,7 +92,7 @@ def populateprocessmaping(disp: dispatcher.Dispatcher, comands, cli: pythonosc.u
         printwarningoscb("Could not read any commands to dispatch for process")
         return items
     if len(comands) % 3 == 0:
-        printoscbridge("Setting nº of mappings for OSCprocess:" + str(len(comands) // 3))
+        printoscbridge(f"Setting nº of mappings for OSCprocess: {len(comands) // 3}")
         for i in range(len(comands) // 3):
             if i != 0:
                 # any iteration past the first one
@@ -103,7 +103,7 @@ def populateprocessmaping(disp: dispatcher.Dispatcher, comands, cli: pythonosc.u
             proces = comands[a + 1]
             if proces =="respond":
                 disp.map(comands[a], command_handleprocess, q_proc, (proces, comands[a + 2]))
-                printoscbridge(comands[a] + " _mapped to_ " + str(proces) + " _ " + str(comands[a + 2]))
+                printoscbridge(f"{comands[a]} _mapped to_ {proces} _ {comands[a + 2]}")
                 items = items + 1
     else:
         printoscbridge(bcolors.FAIL +
@@ -119,7 +119,7 @@ def populatedispatcheroscpass(disp: dispatcher.Dispatcher, comands, cli: pythono
         printwarningoscb("Could not read any commands to dispatch for oscpass")
         return items
     if len(comands) % 2 == 0:
-        printoscbridge("Setting nº of mappings for OSCpass:" + str(len(comands) // 2))
+        printoscbridge(f"Setting nº of mappings for OSCpass: {len(comands) // 2}")
         for i in range(len(comands) // 2):
             if i != 0:
                 # any iteration past the first one
@@ -146,14 +146,14 @@ def populatedispatcherbp(disp: dispatcher.Dispatcher, comands, q: janus.SyncQueu
         printwarningoscb("Could not read any commands to dispatch for butplug")
         return items
     if len(comands) % 3 == 0:
-        printoscbridge("Setting nº of mappings for OSCtoButtplug:" + str(len(comands) // 3))
+        printoscbridge(f"Setting nº of mappings for OSCtoButtplug: {len(comands) // 3}")
         for i in range(len(comands) // 3):
             if i != 0:
                 a = i * 3
             else:
                 a = i
             disp.map(comands[a], command_handlerbp, (comands[a + 1], comands[a + 2]), q)
-            printoscbridge(comands[a] + " _ mapped to_ " + str(comands[a + 1]) + str(comands[a + 2]))
+            printoscbridge(f"{comands[a]}_ mapped to_ {comands[a + 1]} {comands[a + 2]}")
             items = items+1
     else:
         printoscbridge(bcolors.FAIL +
@@ -199,6 +199,6 @@ def oscbridge(mconfig: myclasses.MainData.mainconfig, q_state: janus.SyncQueue[i
         server.serve_forever()
         sendclient.send_message("/OSCBridge", 0)
     except Exception as e:
-        printwarningoscb("Error in the main loop, shuting down" + str(e))
+        printwarningoscb(f"Error in the main loop, shuting down {e}")
     except SystemExit:
         printwarningoscb("Shutting down this side.")

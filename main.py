@@ -8,11 +8,11 @@ from printcolors import bcolors
 
 
 def printmain(msg):
-    print(bcolors.HEADER + "Main: " + bcolors.ENDC + msg)
+    print(f"{bcolors.HEADER} Main: {bcolors.ENDC} {msg} ")
 
 
 def printmainwarning(msg):
-    print(bcolors.WARNING + msg + bcolors.ENDC)
+    print(f"{bcolors.WARNING} msg {bcolors.ENDC}")
 
 
 async def cancel_me():
@@ -69,12 +69,12 @@ async def main():
         except asyncio.CancelledError:
             pass
     except Exception as exc:
-        print("Error : " + str(e))
+        print(f"Error : {e}")
 try:
     asyncio.run(main())
 except KeyboardInterrupt:
-    print(bcolors.WARNING + "Program closed...." + bcolors.ENDC)
+    print(f"{bcolors.WARNING} Program closed....{ bcolors.ENDC}")
 except RuntimeError as e:
-    print(bcolors.WARNING + "All shut down, error/s happened" + bcolors.ENDC + str(e))
+    print(f"{bcolors.WARNING} All shut down, error/s happened {bcolors.ENDC} {e}")
 except Exception:
-    print(bcolors.WARNING + "Program closed...." + bcolors.ENDC)
+    print(f"{bcolors.WARNING} Program closed....{bcolors.ENDC}")

@@ -9,7 +9,7 @@ from printcolors import bcolors
 
 
 def printbpcoms(text) -> None:
-    msg = bcolors.OKCYAN + "btcoms : " + bcolors.ENDC + str(text)
+    msg = f"{bcolors.OKCYAN} btcoms : {bcolors.ENDC} {text}"
     print(msg)
 
 
@@ -35,7 +35,7 @@ async def device_added_task(dev: ButtplugClientDevice) -> None:
     # ButtplugClientDevice.
 
     if "VibrateCmd" in dev.allowed_messages.keys():
-        printbpcoms("Device bibrates and has " + str(dev.allowed_messages["VibrateCmd"].feature_count) + " motors")
+        printbpcoms(f"Device bibrates and has {dev.allowed_messages['VibrateCmd'].feature_count} motors")
 
     if "LinearCmd" in dev.allowed_messages.keys():
         printbpcoms("Device has linear motion, not implemented to control jet")
@@ -60,7 +60,7 @@ def device_added(emitter, dev: ButtplugClientDevice) -> None:
 
 
 def device_removed(emitter, dev: ButtplugClientDevice) -> None:
-    printbpcoms("Device removed: " + str(dev))
+    printbpcoms(f"Device removed: {dev}")
 
 
 async def vibratedevice(device: ButtplugClientDevice, items):
@@ -79,21 +79,21 @@ async def vibratedevice(device: ButtplugClientDevice, items):
                 command[i] = value
                 i += 1
         except Exception as e:
-            printbpcoms("Exception i_" + str(e))
-        # printbpcoms("single comand : " + str(command))
+            printbpcoms(f"Exception i_ {e}")
+        # printbpcoms(f"single comand : {command}")
     else:
         # It's a list of numbers, indicating all motors to be set
         try:
             for i in motorlist:
                 command[i] = value
         except Exception as e:
-            printbpcoms("Error in vibratedevice : " + str(e))
+            printbpcoms(f"Error in vibratedevice : {e}")
     try:
-        # printbpcoms("Command : " + str(command) + " : " + str(type(command)))
-        printbpcoms("Vibrating : " + str(device.name) + " : motor/s : " + str(motorlist) + " : speed :" + str(value))
+        printbpcoms(f"Command : {command} : {(type(command))}")
+        printbpcoms(f"Vibrating : {device.name} : motor/s : {motorlist} : speed : {value}")
         await device.send_vibrate_cmd(command)
-    except Exception as e :
-        printbpcoms("device error, disconnected? " + str(e))
+    except Exception as e:
+        printbpcoms(f"device error, disconnected? {e}")
 
 
 async def rotatedevice(device: ButtplugClientDevice, items) -> None:
@@ -104,7 +104,7 @@ async def rotatedevice(device: ButtplugClientDevice, items) -> None:
         value = float(items[1])
         command = list()
     except Exception as e:
-        print("Could not read the command to rotatedevice : " + str(e))
+        print("Could not read the command to rotatedevice : {e}")
         exit()
     if isinstance(motorlist, str):
         if motorlist == "allcw":
@@ -121,7 +121,7 @@ async def rotatedevice(device: ButtplugClientDevice, items) -> None:
     try:
         await device.send_rotate_cmd(command)
     except Exception as e:
-        printbpcoms("Error trying to rotate device :" + str(name) + " : " + str(e))
+        printbpcoms(f"Error trying to rotate device : {name} : {e}")
 
 
 async def deviceprobe(item, dev: ButtplugClient) -> None:
@@ -130,7 +130,7 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
     command = item[0][1][0]
     try:
         if len(dev.devices) == 0:
-            printbpcoms(" Device not connected : " + name)
+            printbpcoms(f"Device not connected : {name}")
             # we tell the server to stop and scan again.
             # this will help not to do a full reset after a dropped bt connection
             await dev.stop_scanning()
@@ -149,11 +149,12 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
                         printbpcoms("Stoping : " + name)
                         await dev.devices[key].send_stop_device_cmd()
                 else:
-                    printbpcoms("no device found to match this name : " + name + " or coomand : " + str(command))
+                    printbpcoms(f"no device found to match this name : {name} or coomand : {command}")
     except RuntimeError as e:
-        printbpcoms("Device error " + str(e))
+        printbpcoms(f"Device error {e}")
     except Exception as e:
-        printbpcoms("Device error x " + str(e))
+        printbpcoms(f"Device error x {e}")
+
 
 async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> None:
     printbpcoms("listening for commands from oscbridge")
@@ -163,15 +164,15 @@ async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) ->
         # printbpcoms(item)
         try:
             await deviceprobe(item, dev)
-        except Exception:
-            print("yes1")
+        except Exception as e :
+            print(f"listenqueloop error : {e}")
 
 
 async def listenque(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> None:
     try:
         await listenqueloop(q_listen, dev)
-    except Exception:
-        print("yes")
+    except Exception as e:
+        print(f"listenque error : {e}")
 
 
 async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], loop: asyncio.events) -> None:
@@ -181,7 +182,7 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], l
             printbpcoms("Starging the configuration to connect to Interface")
             """ We setup a client object to talk with Interface and it's connection"""
             client = ButtplugClient("OSC_D10")
-            ws = "ws://" + str(mainconfig.mainconfig["InterfaceWS"])
+            ws = f"ws://{mainconfig.mainconfig['InterfaceWS']}"
             connector = ButtplugClientWebsocketConnector(ws)
             """Handler functions to catch when a device connects and disconnects from the server"""
             client.device_added_handler += device_added
@@ -206,8 +207,8 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], l
         await client.stop_scanning()
         await client.disconnect()
     except RuntimeError as e:
-        printbpcoms("something went wrong" + str(e))
+        printbpcoms("something went wrong {e}")
     except Exception as e:
-        printbpcoms("something went wrong" + str(e))
+        printbpcoms("something went wrong {e}")
     printbpcoms("work done")
 
