@@ -3,6 +3,7 @@ import asyncio
 import janus
 from buttplug.client import ButtplugClient, ButtplugClientWebsocketConnector, ButtplugClientConnectorError, \
     ButtplugClientDevice
+from buttplug.core import ButtplugDeviceError
 
 import myclasses
 from printcolors import bcolors
@@ -71,27 +72,29 @@ async def vibratedevice(device: ButtplugClientDevice, items):
     command = dict()
     if isinstance(motorlist, str):
         # I'ts one number, indicating all motors should be set
-        # I found that my device didn't vibrate all motors sending just a float, so I'm setting all motors.
+        # I found that my device didn't vibrate all motors sending just a float after sending a tuple once,
+        # so I'm setting all motors.
         nmotors = device.allowed_messages["VibrateCmd"].feature_count
         try:
-            i = 0
-            while i < nmotors:
+            for i in range(nmotors):
                 command[i] = value
-                i += 1
         except Exception as e:
             printbpcoms(f"Exception i_ {e}")
         # printbpcoms(f"single comand : {command}")
     else:
-        # It's a list of numbers, indicating all motors to be set
+        # It's a list of numbers, indicating all individual motors to be set
         try:
             for i in motorlist:
                 command[i] = value
         except Exception as e:
             printbpcoms(f"Error in vibratedevice : {e}")
     try:
-        printbpcoms(f"Command : {command} : {(type(command))}")
+        # printbpcoms(f"Command : {command} : {(type(command))}")
         printbpcoms(f"Vibrating : {device.name} : motor/s : {motorlist} : speed : {value}")
         await device.send_vibrate_cmd(command)
+    except ButtplugDeviceError as e:
+        printbpcoms(f'configured motor outside of the device range. {e}')
+
     except Exception as e:
         printbpcoms(f"device error, disconnected? {e}")
 
@@ -138,8 +141,7 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
         else:
             for key in dev.devices.keys():
                 if dev.devices[key].name == name:
-                    # print("device is connected")
-                    # print(command)
+                    # print(f"device is connected , command {command}")
                     device = dev.devices[key]
                     if command == 'VibrateCmd':
                         await vibratedevice(device, item)
