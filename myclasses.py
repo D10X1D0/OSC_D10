@@ -1,5 +1,7 @@
 import json
 from dataclasses import dataclass
+from enum import Enum
+
 from printcolors import bcolors
 
 maindefault = {
@@ -16,11 +18,11 @@ maindefault = {
 # OSCparameter, "device name", [command, motor index]
 # OSCparameter, "device name", [command, rotation direction]  "allcw" clockwise "allccw" counterclockwise
 parameterMapingdefault = [
-    "/avatar/parameters/pContact1", "Lovense Edge", ["VibrateCmd", "all"],
-    "/avatar/parameters/pContact2", "Lovense Edge", ["VibrateCmd", [0]],
-    "/avatar/parameters/Mouth", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd", "all"],
-    "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd", [0]],
-    "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["VibrateCmd", [1]]
+    "/avatar/parameters/pContact1", "Lovense Edge", ["Vibrate", "all"],
+    "/avatar/parameters/pContact2", "Lovense Edge", ["Vibrate", [0]],
+    "/avatar/parameters/Mouth", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", "all"],
+    "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [0]],
+    "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [1]]
 ]
 #  "/avatar/parameters/pContact3", "rotatingdevice", ["RotateCmd",["allcw"]]
 # "/avatar/parameters/pContact3", "rotatingdevice", ["RotateCmd",["allccw"]]
@@ -86,3 +88,9 @@ class OscServerData:
     retransmit = readjsonfile("retransmitMaping.json", passMapingdefault)
     proces = readjsonfile("procesMaping.json", processMapingdefault)
     buttplug = readjsonfile("parameterMaping.json", parameterMapingdefault)
+
+# enum of valid commands for devices in osctobutplug
+class BpDevCommand(Enum):
+    Stop = 1
+    Vibrate = 2
+    Rotate = 3

@@ -22,12 +22,6 @@ def retransmit(cli, param, value) -> None:
     printoscbridge(f"retransmitting : {param} {value}")
 
 
-def process(dest: str, param, value) -> None:
-    printoscbridge("process")
-    #printoscbridge(f"process {dest}__{param}"__"{value})
-    # param [oscadress, oscclient]
-
-
 def command_handlerbp(command, args, value):
     sendtoque(args[0], args[1], value)
 
@@ -40,7 +34,7 @@ def printoscbridge(msg) -> None:
     print(f"{bcolors.HEADER} OSCB : {bcolors.ENDC} {msg}")
 
 
-def printwarningoscb(msg: str):
+def printwarningoscb(msg: str) -> None:
     printoscbridge(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
@@ -75,12 +69,8 @@ def queuesend(queue: janus.SyncQueue[int], data) -> None:
 
 
 def command_handleprocess(command, args, value):
-    """
-    printoscbridge("command_handleprocess")
-    printoscbridge(command)
-    printoscbridge(value)
-    printoscbridge(args)
-    """
+    # printoscbridge("command_handleprocess")
+    # printoscbridge(f"{command} {value} {args}")
     queuesend(args[0], [value, args[1]])
 
 
@@ -111,9 +101,10 @@ def populateprocessmaping(disp: dispatcher.Dispatcher, comands, cli: pythonosc.u
                        + bcolors.ENDC)
     return items
 
+
 def populatedispatcheroscpass(disp: dispatcher.Dispatcher, comands, cli: pythonosc.udp_client.SimpleUDPClient) -> int:
     # populating the dispatcher with commands to be passed back to a different address
-    # The mappinggs are stored in sets of 2, [origin, destination]
+    # The mappinggs are stored in sets of 2, [origin, destination, origin2, destination2]
     items = 0
     if not comands:
         printwarningoscb("Could not read any commands to dispatch for oscpass")
@@ -152,12 +143,28 @@ def populatedispatcherbp(disp: dispatcher.Dispatcher, comands, q: janus.SyncQueu
                 a = i * 3
             else:
                 a = i
-            disp.map(comands[a], command_handlerbp, (comands[a + 1], comands[a + 2]), q)
-            printoscbridge(f"{comands[a]}_ mapped to_ {comands[a + 1]} {comands[a + 2]}")
-            items = items+1
+            try:
+                oscaddr = comands[a]
+                devname = comands[a + 1]
+                command = comands[a + 2]
+                commandname = comands[a + 2][0]
+                if len(comands[a + 2]) == 2:
+                    commanddata = comands[a + 2][1]
+                else:
+                    commanddata = ''
+                # replacing the command name str(), for it's asigned value, if its
+                command[0] = myclasses.BpDevCommand[commandname].value
+                disp.map(oscaddr, command_handlerbp, (devname, command), q)
+                printoscbridge(f"{oscaddr}_ mapped to_ {devname} {commandname} {commanddata}")
+                items = items + 1
+            except ValueError:
+                printwarningoscb(f" Invalid command for osctobutplug in configuration, skipping it. "
+                                 f"{command} {commandname}")
+            except Exception as e:
+                printwarningoscb(f" This command could not be mapped to OSCtoButtplug : {command} : error {e}")
     else:
         printoscbridge(bcolors.FAIL +
-                       "The number of entrys in OSCtoButtplug -> parameterMaping.json is not multiple of 3"
+                       "The number of entry's in OSCtoButtplug -> parameterMaping.json is not multiple of 3"
                        + bcolors.ENDC)
     return items
 

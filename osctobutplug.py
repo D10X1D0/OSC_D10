@@ -135,7 +135,7 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
         if len(dev.devices) == 0:
             printbpcoms(f"Device not connected : {name}")
             # we tell the server to stop and scan again.
-            # this will help not to do a full reset after a dropped bt connection
+            # this will help not to do a full reset after a dropped bluetooth connection
             await dev.stop_scanning()
             await dev.start_scanning()
         else:
@@ -143,11 +143,11 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
                 if dev.devices[key].name == name:
                     # print(f"device is connected , command {command}")
                     device = dev.devices[key]
-                    if command == 'VibrateCmd':
+                    if command == myclasses.BpDevCommand.Vibrate.value:
                         await vibratedevice(device, item)
-                    elif command == 'RotateCmd':
+                    elif command == myclasses.BpDevCommand.Rotate.value:
                         await rotatedevice(device, item)
-                    elif command == 'StopDeviceCmd':
+                    elif command == myclasses.BpDevCommand.Stop.value:
                         printbpcoms("Stoping : " + name)
                         await dev.devices[key].send_stop_device_cmd()
                 else:
@@ -200,7 +200,7 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], l
 
     try:
         await client.start_scanning()
-        """Start the queque listening"""
+        """Start the queue listening"""
         task2 = asyncio.create_task(listenque(q_in_l, client))
         await task2
 
@@ -209,8 +209,7 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], l
         await client.stop_scanning()
         await client.disconnect()
     except RuntimeError as e:
-        printbpcoms("something went wrong {e}")
+        printbpcoms("something went wrong running OSCtobutplug{e}")
     except Exception as e:
-        printbpcoms("something went wrong {e}")
+        printbpcoms("something went wrong running OSCtobutplug{e}")
     printbpcoms("work done")
-

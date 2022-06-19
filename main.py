@@ -69,7 +69,7 @@ async def main():
         except asyncio.CancelledError:
             pass
     except Exception as exc:
-        print(f"Error : {e}")
+        print(f"Error : {exc}")
 try:
     asyncio.run(main())
 except KeyboardInterrupt:
