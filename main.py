@@ -49,7 +49,7 @@ async def main():
             bridge = loop.run_in_executor(None, oscserver.oscbridge, config, qstate.sync_q, qbp.sync_q, qproc.sync_q)
             # OSCprocess async side
             if config.mainconfig["OSCprocess"]:
-                loop.create_task(oscprocess.process(qproc.async_q, config, loop), name="OSCprocess")
+                loop.create_task(oscprocess.process(qproc.async_q, config, qstate.async_q), name="OSCprocess")
         else:
             printmainwarning(
                 "Skipping OSCBridge, and OSCToButtplug, OSCBridge = true to enable it in Mainconfig.json")

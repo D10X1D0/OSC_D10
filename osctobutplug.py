@@ -176,11 +176,23 @@ async def listenque(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> Non
     except Exception as e:
         print(f"listenque error : {e}")
 
+async def clearqueue(q: janus.AsyncQueue[int]):
+    # this sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually.
+    try:
+        x = q.qsize()
+        for i in range(x):
+            await q.get()
+        # printbpcoms(f"q.length {q.unfinished_tasks}")
+    except Exception as e:
+        printbpcoms(f"error clearing the command queue {e}")
+        pass
 
-async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], loop: asyncio.events) -> None:
-    printbpcoms("Starging work")
+async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q_estate: janus.AsyncQueue[int]) -> None:
+    printbpcoms("Starging Osc to butplug")
     while True:
         try:
+            # clear the queue commands so that it won't hold old commands while we can't send them to Interface
+            await clearqueue(q_in_l)
             printbpcoms("Starging the configuration to connect to Interface")
             """ We setup a client object to talk with Interface and it's connection"""
             client = ButtplugClient("OSC_D10")
@@ -209,7 +221,7 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], l
         await client.stop_scanning()
         await client.disconnect()
     except RuntimeError as e:
-        printbpcoms("something went wrong running OSCtobutplug{e}")
+        printbpcoms(f"something went wrong running OSCtobutplug {e}")
     except Exception as e:
-        printbpcoms("something went wrong running OSCtobutplug{e}")
+        printbpcoms(f"something went wrong running OSCtobutplug {e}")
     printbpcoms("work done")
