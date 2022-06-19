@@ -100,34 +100,53 @@ async def vibratedevice(device: ButtplugClientDevice, items):
 
 
 async def rotatedevice(device: ButtplugClientDevice, items) -> None:
-    printbpcoms("to do, not implemented jet")
     try:
         name = items[0][0]
         motorlist = items[0][1][1]
         value = float(items[1])
-        command = list()
+        command = dict()
     except Exception as e:
         print("Could not read the command to rotatedevice : {e}")
         exit()
     if isinstance(motorlist, str):
+        # All motors to turn
         if motorlist == "allcw":
             # clock wise
             command = (value, True)
         elif motorlist == "allccw":
-            # conter clock wise
+            # counter clock wise
             command = (value, False)
         else:
             # invalid direction to rotate
             printbpcoms("didn't find the direction to set the rotation: allcw or allccw ")
             exit()
         command = tuple(command)
+    elif isinstance(motorlist, list):
+        # List of motors and directions
+        nmotors = len(motorlist)
+
+        if isinstance(motorlist[0], int):
+            # just one motor to set : a Tuple of [float, bool]
+            command = motorlist[0], motorlist[1]
+            command = tuple(command)
+            # printbpcoms(f"Setting one motor {command}")
+        elif isinstance(motorlist[0], list):
+            # more than one motor to set : a dict of int to Tuple[float, bool]
+            command = dict()
+            for i in range(nmotors):
+                motorindex = motorlist[i]
+                command[motorindex[0]] = value, motorindex[1]
+            # printbpcoms(f"Setting more than one motor {command}")
+        # printbpcoms(f"nmotors : {nmotors}")
+
     try:
+        printbpcoms(f"Rotating : {name} : {command}")
         await device.send_rotate_cmd(command)
     except Exception as e:
-        printbpcoms(f"Error trying to rotate device : {name} : {e}")
+        printbpcoms(f"Error trying to rotate device : name {name} : command {command} : error {e}")
 
 
-async def deviceprobe(item, dev: ButtplugClient) -> None:
+async def deviceprobe(item, dev: ButtplugClient, device_msg=None) -> None:
     # look for a toy that matches the name passed, and if it is present execute the command
     name = item[0][0]
     command = item[0][1][0]
@@ -138,6 +157,9 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
             # this will help not to do a full reset after a dropped bluetooth connection
             await dev.stop_scanning()
             await dev.start_scanning()
+            # test rotating device withouth connecting one to interface delete me after testing
+            # if command == myclasses.BpDevCommand.Rotate.value:
+            #    await rotatedevice(dev, item)
         else:
             for key in dev.devices.keys():
                 if dev.devices[key].name == name:
@@ -176,6 +198,7 @@ async def listenque(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> Non
     except Exception as e:
         print(f"listenque error : {e}")
 
+
 async def clearqueue(q: janus.AsyncQueue[int]):
     # this sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually.
     try:
@@ -186,6 +209,7 @@ async def clearqueue(q: janus.AsyncQueue[int]):
     except Exception as e:
         printbpcoms(f"error clearing the command queue {e}")
         pass
+
 
 async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q_estate: janus.AsyncQueue[int]) -> None:
     printbpcoms("Starging Osc to butplug")

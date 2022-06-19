@@ -17,9 +17,15 @@ maindefault = {
 # OSCparameter, "device name", [command]
 # OSCparameter, "device name", [command, motor index]
 # OSCparameter, "device name", [command, rotation direction]  "allcw" clockwise "allccw" counterclockwise
+# OSCparameter, "device name", [command, [rotor index, [rotation direction]]  "true" clockwise, "false" counterclockwise
 parameterMapingdefault = [
     "/avatar/parameters/pContact1", "Lovense Edge", ["Vibrate", "all"],
     "/avatar/parameters/pContact2", "Lovense Edge", ["Vibrate", [0]],
+    "/avatar/parameters/stop0", "Lovense Edge", ["Stop"],
+    "/avatar/parameters/rotatea", "fake rotating device", ["Rotate", "allcw"],
+    "/avatar/parameters/rotateb", "fake rotating device", ["Rotate", "allccw"],
+    "/avatar/parameters/rotatec", "fake rotating device", ["Rotate", [0, True]],
+    "/avatar/parameters/rotated", "fake rotating device", ["Rotate", [[2, False], [7, True]]],
     "/avatar/parameters/Mouth", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", "all"],
     "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [0]],
     "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [1]]
