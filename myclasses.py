@@ -100,3 +100,4 @@ class BpDevCommand(Enum):
     Stop = 1
     Vibrate = 2
     Rotate = 3
+

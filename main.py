@@ -15,9 +15,12 @@ def printmainwarning(msg):
     print(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
-async def cancel_me():
-    printmain('cancel_me(): before sleep')
-
+async def cancel_me(ntasks):
+    if ntasks != 0:
+        printmain(f'Running active task/s : {ntasks}')
+    else:
+        printmain(f'No tasks to run, shutting down')
+        exit()
     try:
         await asyncio.sleep(3600)
     except asyncio.CancelledError:
@@ -37,6 +40,8 @@ async def main():
     # Queue for comunicating back to osctobutplug
     qbp: janus.Queue[int] = janus.Queue()
     loop = asyncio.get_running_loop()
+    #number of tasks that will be running
+    ntasks = 0
     try:
         if config.mainconfig["OSCBridge"] or config.mainconfig["OSCPass"] or config.mainconfig["OSCprocess"]:
             """ 
@@ -44,12 +49,12 @@ async def main():
                 the osc server is not async, so we run it inside a separate thread/executor.
                 and get info back with a sync/async janus.Queue 
             """
-            # t1 = threading.Thread(target=oscserver.oscbridge, args=(config, qstate.sync_q, qsinc.sync_q))
-            # t1.start()
             bridge = loop.run_in_executor(None, oscserver.oscbridge, config, qstate.sync_q, qbp.sync_q, qproc.sync_q)
+            ntasks += 1
             # OSCprocess async side
             if config.mainconfig["OSCprocess"]:
                 loop.create_task(oscprocess.process(qproc.async_q, config, qstate.async_q), name="OSCprocess")
+                ntasks += 1
         else:
             printmainwarning(
                 "Skipping OSCBridge, and OSCToButtplug, OSCBridge = true to enable it in Mainconfig.json")
@@ -57,13 +62,14 @@ async def main():
             # osctobutplug will be the buttplug client/connector to talk to Interface and control devices.
             # loop.create_task(osctobutplug.butplugcoms, config, qBP.async_q, qstate.async_q)
             taskwork = loop.create_task(osctobutplug.work(config, qbp.async_q, loop), name="OSCtoButtplug")
+            ntasks += 1
             # asyncio.create_task(osctobutplug.work(config, qBP.async_q, loop))
             # osctobutplug.butplugcoms(config, qBP.async_q, qstate.async_q)
         else:
             printmainwarning(
                   "Skipping OSCToButtplug, OSCtoButtplug = true to enable it in Mainconfig.json")
         # dummy task to keep the main loop running
-        task = asyncio.create_task(cancel_me())
+        task = asyncio.create_task(cancel_me(ntasks))
         try:
             await task
         except asyncio.CancelledError:
