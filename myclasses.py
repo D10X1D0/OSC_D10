@@ -49,7 +49,7 @@ processMapingdefault = [
 
 
 def printwarning(msg):
-    print(f"bcolors.WARNING + {msg} + bcolors.ENDC")
+    print(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
 def tryreadjson(filename):
@@ -59,13 +59,13 @@ def tryreadjson(filename):
 
 
 def createdefaultfile(filename, data):
-    printwarning("Creating default config file: " + filename)
+    printwarning(f"Creating default config file:{filename}")
     try:
         jsondump = json.dumps(data, indent=4)
         with open(filename, "w") as f:
             f.write(jsondump)
-    except:
-        printwarning("Could not create a default config file for {filename}")
+    except Exception as e:
+        printwarning(f"Could not create a default config file for {filename}, error : {e}")
 
 
 def readjsonfile(filename: str, defaultvalue):
@@ -95,9 +95,17 @@ class OscServerData:
     proces = readjsonfile("procesMaping.json", processMapingdefault)
     buttplug = readjsonfile("parameterMaping.json", parameterMapingdefault)
 
+
 # enum of valid commands for devices in osctobutplug
 class BpDevCommand(Enum):
     Stop = 1
     Vibrate = 2
     Rotate = 3
+
+
+# enum of valid commands for devices in Buttplug and controllable in osctobutplug
+class BpDevCommandInterface(Enum):
+    StopDeviceCmd = 1
+    VibrateCmd = 2
+    RotateCmd = 3
 

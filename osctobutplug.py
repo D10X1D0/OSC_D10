@@ -14,13 +14,44 @@ def printbpcoms(text) -> None:
     print(msg)
 
 
+async def deviceDump(dev: ButtplugClientDevice) -> None:
+    dname = dev.name
+    try:
+        myclasses.tryreadjson(f"{dname}.json")
+        printbpcoms(f"Dump file already exists, skipping creating it. {dev.name}")
+    except:
+        await serilizeDevice(dev)
+
+
+async def serilizeDevice(dev: ButtplugClientDevice):
+    printbpcoms(f"Creating dump file for {dev.name}")
+    data = dict()
+    clist = list()
+    data['devname'] = str(dev.name)
+    for m in dev.allowed_messages:
+        try:
+            # check if the message is a implemented command and translate it to the OSCtobutplug name.
+            bpnamevalue = myclasses.BpDevCommandInterface[str(m)].value
+            octobpname = myclasses.BpDevCommand(bpnamevalue).name
+            # check the featurecount if it has vibrating or rotating motors
+            if bpnamevalue == 2 or bpnamevalue == 3:
+                nmotors = dev.allowed_messages[str(m)].feature_count
+                clist.append({str(octobpname): nmotors})
+            else:
+                clist.append(str(octobpname))
+        except Exception as e:
+            printbpcoms(f"{m} is not implemented in osctobuttplug {e}")
+    data['commands'] = clist
+    myclasses.createdefaultfile(f"{dev.name}.json", data)
+
+
 async def device_added_task(dev: ButtplugClientDevice) -> None:
     # Ok, so we got a new device in! Neat!
     #
     # First off, we'll print the name of the devices, and its allowed messages.
     printbpcoms("Device Added: {}".format(dev.name))
     printbpcoms(dev.allowed_messages.keys())
-
+    await deviceDump(dev)
     # Once we've done that, we can send some commands to the device, depending
     # on what it can do. As of the current version I'm writing this for
     # (v0.0.3), all the client can send to devices are generic messages.
