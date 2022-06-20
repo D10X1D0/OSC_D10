@@ -49,7 +49,7 @@ processMapingdefault = [
 
 
 def printwarning(msg):
-    print(bcolors.WARNING + msg + bcolors.ENDC)
+    print(f"bcolors.WARNING + {msg} + bcolors.ENDC")
 
 
 def tryreadjson(filename):
@@ -61,9 +61,9 @@ def tryreadjson(filename):
 def createdefaultfile(filename, data):
     printwarning("Creating default config file: " + filename)
     try:
-        with open(filename, 'w') as f:
-            # print(f"{data}")
-            json.dump(data, f)
+        jsondump = json.dumps(data, indent=4)
+        with open(filename, "w") as f:
+            f.write(jsondump)
     except:
         printwarning("Could not create a default config file for {filename}")
 

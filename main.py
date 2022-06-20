@@ -12,7 +12,7 @@ def printmain(msg):
 
 
 def printmainwarning(msg):
-    print(f"{bcolors.WARNING} msg {bcolors.ENDC}")
+    print(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
 async def cancel_me():
