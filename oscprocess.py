@@ -9,6 +9,8 @@ from printcolors import bcolors
 
 def printprocess(msg) -> None:
     print(bcolors.HEADER2 + "OSCProc : " + bcolors.ENDC + str(msg))
+
+
 def printprocesserr(msg) -> None:
     msg = bcolors.WARNING + msg + bcolors.ENDC
     printprocess(msg)
