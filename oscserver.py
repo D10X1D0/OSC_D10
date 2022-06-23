@@ -91,7 +91,7 @@ def populateprocessmaping(disp: dispatcher.Dispatcher, comands, cli: pythonosc.u
                 # first iteration
                 a = i
             proces = comands[a + 1]
-            if proces =="respond":
+            if proces == "respond":
                 disp.map(comands[a], command_handleprocess, q_proc, (proces, comands[a + 2]))
                 printoscbridge(f"{comands[a]} _mapped to_ {proces} _ {comands[a + 2]}")
                 items = items + 1
@@ -123,9 +123,8 @@ def populatedispatcheroscpass(disp: dispatcher.Dispatcher, comands, cli: pythono
             printoscbridge(comands[a] + " :_resending to_: " + comands[a + 1])
             items = items + 1
     else:
-        printoscbridge(bcolors.FAIL +
-                       "The number of entrys in OSCpass -> passMaping.json is not multiple of 2"
-                       + bcolors.ENDC)
+        printoscbridge(
+            f"{bcolors.FAIL} The number of entrys in OSCpass -> passMaping.json is not multiple of 2 {bcolors.ENDC}")
     return items
 
 
@@ -152,7 +151,7 @@ def populatedispatcherbp(disp: dispatcher.Dispatcher, comands, q: janus.SyncQueu
                     commanddata = comands[a + 2][1]
                 else:
                     commanddata = ''
-                # replacing the command name str(), for it's asigned value, if its
+                # replacing the command name str(), for it's assigned value, if its
                 command[0] = myclasses.BpDevCommand[commandname].value
                 disp.map(oscaddr, command_handlerbp, (devname, command), q)
                 printoscbridge(f"{oscaddr}_ mapped to_ {devname} {commandname} {commanddata}")
@@ -182,7 +181,7 @@ def configserver(mcon:myclasses.MainData.mainconfig, disp: dispatcher.Dispatcher
 
 
 def oscbridge(mconfig: myclasses.MainData.mainconfig, q_state: janus.SyncQueue[int],
-              q_BP: janus.SyncQueue[int], q_proc: janus.SyncQueue[int]) -> None:
+              q_bp: janus.SyncQueue[int], q_proc: janus.SyncQueue[int]) -> None:
     try:
         printoscbridge("running bridge ")
         oscbconfig = myclasses.OscServerData
@@ -191,7 +190,7 @@ def oscbridge(mconfig: myclasses.MainData.mainconfig, q_state: janus.SyncQueue[i
         # dispatcher that maps OSC inputs to functions
         dispatcherl = dispatcher.Dispatcher()
         # load mappings and set up mappings from configuration files
-        parametermaping = loadcommandlist(mconfig.mainconfig, oscbconfig, dispatcherl, q_BP, sendclient, q_proc)
+        parametermaping = loadcommandlist(mconfig.mainconfig, oscbconfig, dispatcherl, q_bp, sendclient, q_proc)
         # createdefaultparametermapingfile()
         sendclient.send_message("/OSCBridge", 1)
         if parametermaping == 0:

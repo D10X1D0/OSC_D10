@@ -4,20 +4,22 @@ import janus
 from pythonosc import udp_client
 
 import myclasses
+import printcolors
 from printcolors import bcolors
 
 
 def printprocess(msg) -> None:
-    print(bcolors.HEADER2 + "OSCProc : " + bcolors.ENDC + str(msg))
+    print(f"{bcolors.HEADER2} OSCProc : {bcolors.ENDC} {msg}")
 
 
 def printprocesserr(msg) -> None:
     msg = bcolors.WARNING + msg + bcolors.ENDC
     printprocess(msg)
 
+
 async def pulse(cli: udp_client.SimpleUDPClient, addr: str, timings):
     while True:
-        printprocess("pulsing " + addr + str(timings))
+        printprocess(f"pulsing {addr} {timings}")
         cli.send_message(addr, timings[1])
         await asyncio.sleep(timings[0])
 
@@ -25,7 +27,7 @@ async def pulse(cli: udp_client.SimpleUDPClient, addr: str, timings):
 async def startpulse(con: myclasses.MainData, cli: udp_client.SimpleUDPClient, loop) -> None:
     try:
         lconfig = myclasses.OscServerData().proces
-        printprocess(lconfig)
+        # printprocess(lconfig)
         for i in range(len(lconfig) // 3):
             if i != 0:
                 # any iteration past the first one
@@ -36,13 +38,18 @@ async def startpulse(con: myclasses.MainData, cli: udp_client.SimpleUDPClient, l
             taskname = lconfig[a+1]
             if taskname == "pulse":
                 adres = lconfig[a]
-                timing = lconfig[a+2]
-                printprocess("registering pulse task " + str(i))
-                asyncio.create_task(pulse(cli, adres, timing))
+                timings = lconfig[a+2]
+                if float(timings[0]) > 0.1:
+                    printprocess(f"registering pulse task {i}")
+                    asyncio.create_task(pulse(cli, adres, timings))
+                    printprocess(f"{lconfig[a]}__{taskname}__{lconfig[a + 2]}")
+                else:
+                    printprocess(f"{printcolors.bcolors.FAIL}pulse too fast, faster than 0.1s, "
+                                 f"skipping it timing: {timings} {printcolors.bcolors.FAIL}")
                 #pulse(cli, adres, timing)
-            printprocess(str(lconfig[a]) + "__" + str(taskname) +  "__" + str(lconfig[a+2]))
+
     except Exception as e:
-        printprocess("Error creating pulse task" + str(e))
+        printprocess(f"Error creating pulse task {e}")
 
 
 async def startrespond(q_com, cli: udp_client.SimpleUDPClient) -> None:
@@ -67,10 +74,10 @@ async def startrespond(q_com, cli: udp_client.SimpleUDPClient) -> None:
                                  + " : " + str(adressout)
                                  + " : " + str(dataout) + str(type(dataout)))
             else:
-                printprocess("NOT respond : " + str(taskname))
+                printprocess(f"NOT respond : {taskname}")
             q_com.task_done()
         except RuntimeError as e:
-            printprocesserr("error in startrespond: " + str(e))
+            printprocesserr(f"error in startrespond: {e}")
             pass
 
 
@@ -82,5 +89,5 @@ async def process(q_com: janus.AsyncQueue[int], config: myclasses.MainData, loop
         await startpulse(config, cli, loop)
         await startrespond(q_com, cli)
     except Exception as e:
-        printprocess("Shutting down : " +str(e))
+        printprocess(f"Shutting down : {e}")
 

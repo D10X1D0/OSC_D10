@@ -14,16 +14,16 @@ def printbpcoms(text) -> None:
     print(msg)
 
 
-async def deviceDump(dev: ButtplugClientDevice) -> None:
+async def devicedump(dev: ButtplugClientDevice) -> None:
     dname = dev.name
     try:
         myclasses.tryreadjson(f"{dname}.json")
         printbpcoms(f"Dump file already exists, skipping creating it. {dev.name}")
     except:
-        await serilizeDevice(dev)
+        await serializedevice(dev)
 
 
-async def serilizeDevice(dev: ButtplugClientDevice):
+async def serializedevice(dev: ButtplugClientDevice):
     printbpcoms(f"Creating dump file for {dev.name}")
     data = dict()
     clist = list()
@@ -51,7 +51,7 @@ async def device_added_task(dev: ButtplugClientDevice) -> None:
     # First off, we'll print the name of the devices, and its allowed messages.
     printbpcoms("Device Added: {}".format(dev.name))
     printbpcoms(dev.allowed_messages.keys())
-    await deviceDump(dev)
+    await devicedump(dev)
     # Once we've done that, we can send some commands to the device, depending
     # on what it can do. As of the current version I'm writing this for
     # (v0.0.3), all the client can send to devices are generic messages.
@@ -95,11 +95,16 @@ def device_removed(emitter, dev: ButtplugClientDevice) -> None:
     printbpcoms(f"Device removed: {dev}")
 
 
-async def vibratedevice(device: ButtplugClientDevice, items):
+async def vibratedevice(device: ButtplugClientDevice, items) -> None:
     # await device.send_vibrate_cmd({m: value})
     name = items[0][0]
     motorlist = items[0][1][1]
-    value = float(items[1])
+    # make sure the value is inside the range 0->1
+    try:
+        value = max(min(float(items[1]), 1.0), 0.0)
+    except Exception as e:
+        printbpcoms(f"received a value outside of the valid float range (0.0-> 1.0) : {e}")
+        return
     command = dict()
     if isinstance(motorlist, str):
         # I'ts one number, indicating all motors should be set
@@ -134,11 +139,12 @@ async def rotatedevice(device: ButtplugClientDevice, items) -> None:
     try:
         name = items[0][0]
         motorlist = items[0][1][1]
-        value = float(items[1])
+        # make sure the value is inside the range 0->1
+        value = max(min(float(items[1]), 1.0), 0.0)
         command = dict()
     except Exception as e:
         print("Could not read the command to rotatedevice : {e}")
-        exit()
+        return
     if isinstance(motorlist, str):
         # All motors to turn
         if motorlist == "allcw":
@@ -175,6 +181,7 @@ async def rotatedevice(device: ButtplugClientDevice, items) -> None:
         await device.send_rotate_cmd(command)
     except Exception as e:
         printbpcoms(f"Error trying to rotate device : name {name} : command {command} : error {e}")
+        return
 
 
 async def deviceprobe(item, dev: ButtplugClient, device_msg=None) -> None:
@@ -204,7 +211,7 @@ async def deviceprobe(item, dev: ButtplugClient, device_msg=None) -> None:
                         printbpcoms("Stoping : " + name)
                         await dev.devices[key].send_stop_device_cmd()
                 else:
-                    printbpcoms(f"no device found to match this name : {name} or coomand : {command}")
+                    printbpcoms(f"no device found to match this name : {name} or command : {command}")
     except RuntimeError as e:
         printbpcoms(f"Device error {e}")
     except Exception as e:

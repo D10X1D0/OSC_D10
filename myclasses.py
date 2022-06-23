@@ -30,8 +30,6 @@ parameterMapingdefault = [
     "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [0]],
     "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [1]]
 ]
-#  "/avatar/parameters/pContact3", "rotatingdevice", ["RotateCmd",["allcw"]]
-# "/avatar/parameters/pContact3", "rotatingdevice", ["RotateCmd",["allccw"]]
 # default contents of passMaping.json
 # OSC origin adress, OSC destination adress
 passMapingdefault = [
