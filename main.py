@@ -42,6 +42,7 @@ async def main():
     loop = asyncio.get_running_loop()
     #number of tasks that will be running
     ntasks = 0
+    taskobjectlist = list()
     try:
         if config.mainconfig["OSCBridge"] or config.mainconfig["OSCPass"] or config.mainconfig["OSCprocess"]:
             """ 
@@ -53,7 +54,8 @@ async def main():
             ntasks += 1
             # OSCprocess async side
             if config.mainconfig["OSCprocess"]:
-                loop.create_task(oscprocess.process(qproc.async_q, config, qstate.async_q), name="OSCprocess")
+                taskoscp = asyncio.create_task(oscprocess.process(qproc.async_q, config, qstate.async_q), name="OSCprocess")
+                taskobjectlist.append(taskoscp)
                 ntasks += 1
         else:
             printmainwarning(
@@ -61,7 +63,8 @@ async def main():
         if config.mainconfig["OSCtoButtplug"]:
             # osctobutplug will be the buttplug client/connector to talk to Interface and control devices.
             # loop.create_task(osctobutplug.butplugcoms, config, qBP.async_q, qstate.async_q)
-            taskwork = loop.create_task(osctobutplug.work(config, qbp.async_q, loop), name="OSCtoButtplug")
+            taskbtplug = asyncio.create_task(osctobutplug.work(config, qbp.async_q, loop), name="OSCtoButtplug")
+            taskobjectlist.append(taskbtplug)
             ntasks += 1
             # asyncio.create_task(osctobutplug.work(config, qBP.async_q, loop))
             # osctobutplug.butplugcoms(config, qBP.async_q, qstate.async_q)
@@ -69,13 +72,32 @@ async def main():
             printmainwarning(
                   "Skipping OSCToButtplug, OSCtoButtplug = true to enable it in Mainconfig.json")
         # dummy task to keep the main loop running
-        task = asyncio.create_task(cancel_me(ntasks))
+        taskdummy = asyncio.create_task(cancel_me(ntasks))
+        taskobjectlist.append(taskdummy)
+
+        # check the states of the tasks as they finish
         try:
-            await task
-        except asyncio.CancelledError:
-            pass
+            done, pending = await asyncio.wait(
+                taskobjectlist,
+                return_when=asyncio.ALL_COMPLETED
+            )
+            for task in done:
+                name = task.get_name()
+                print(f"Done {name}")
+                exception = task.exception()
+                if isinstance(exception, Exception):
+                    print(f"{name} threw {exception}")
+                try:
+                    result = task.result()
+                    print(f"{name} returned {result}")
+                except ValueError as e:
+                    print(f"valueError : {e}")
+        except Exception as e:
+            print(f"Outer Exception {e}")
     except Exception as exc:
-        print(f"Error : {exc}")
+        print(f"Error in Main: {exc}")
+
+
 try:
     asyncio.run(main())
 except KeyboardInterrupt:

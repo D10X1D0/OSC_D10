@@ -1,4 +1,5 @@
 import asyncio
+import sys
 
 import janus
 from buttplug.client import ButtplugClient, ButtplugClientWebsocketConnector, ButtplugClientConnectorError, \
@@ -19,8 +20,12 @@ async def devicedump(dev: ButtplugClientDevice) -> None:
     try:
         myclasses.tryreadjson(f"{dname}.json")
         printbpcoms(f"Dump file already exists, skipping creating it. {dev.name}")
-    except:
+    except FileNotFoundError as e:
+        printbpcoms(f"Dump file does not exist, creating it. {dev.name}")
         await serializedevice(dev)
+    except Exception as e:
+        printbpcoms(f"Error creating a dump file for {dev.name} : {e}")
+
 
 
 async def serializedevice(dev: ButtplugClientDevice):
@@ -39,11 +44,13 @@ async def serializedevice(dev: ButtplugClientDevice):
                 nmotors = dev.allowed_messages[str(m)].feature_count
                 clist.append({str(octobpname): nmotors})
                 clistraw.append({str(m): nmotors})
-            except Exception as e:
-                # the current command does not have .featurecount
+            except AttributeError as e:
+                # the current command does not have .featurecount attribute
                 clist.append(str(octobpname))
-                clistraw.append({str(m): nmotors})
+                clistraw.append(str(m))
+
         except Exception as e:
+            print(sys.exc_info())
             printbpcoms(f"{m} is not implemented in osctobuttplug {e}")
             try:
                 # check the featurecount if it has vibrating or rotating motors
@@ -283,6 +290,8 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q
         except ButtplugClientConnectorError:
             printbpcoms("Could not connect to Interface server, retrying in 1s")
             await asyncio.sleep(1)
+        except Exception as e:
+            printbpcoms(f"Exception in work : {e}")
 
     try:
         await client.start_scanning()
