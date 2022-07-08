@@ -153,6 +153,7 @@ def populatedispatcherbp(disp: dispatcher.Dispatcher, comands, q: janus.SyncQueu
                     commanddata = ''
                 # replacing the command name str(), for it's assigned value, if its
                 command[0] = myclasses.BpDevCommand[commandname].value
+                # registering command in internal valid list
                 disp.map(oscaddr, command_handlerbp, (devname, command), q)
                 printoscbridge(f"{oscaddr}_ mapped to_ {devname} {commandname} {commanddata}")
                 items = items + 1

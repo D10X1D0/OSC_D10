@@ -27,21 +27,33 @@ async def serializedevice(dev: ButtplugClientDevice):
     printbpcoms(f"Creating dump file for {dev.name}")
     data = dict()
     clist = list()
+    clistraw = list()
     data['devname'] = str(dev.name)
     for m in dev.allowed_messages:
         try:
             # check if the message is a implemented command and translate it to the OSCtobutplug name.
             bpnamevalue = myclasses.BpDevCommandInterface[str(m)].value
             octobpname = myclasses.BpDevCommand(bpnamevalue).name
-            # check the featurecount if it has vibrating or rotating motors
-            if bpnamevalue == 2 or bpnamevalue == 3:
+            try:
+                # check the featurecount and fail if it does not exist for the current command
                 nmotors = dev.allowed_messages[str(m)].feature_count
                 clist.append({str(octobpname): nmotors})
-            else:
+                clistraw.append({str(m): nmotors})
+            except Exception as e:
+                # the current command does not have .featurecount
                 clist.append(str(octobpname))
+                clistraw.append({str(m): nmotors})
         except Exception as e:
             printbpcoms(f"{m} is not implemented in osctobuttplug {e}")
+            try:
+                # check the featurecount if it has vibrating or rotating motors
+                nmotors = dev.allowed_messages[str(m)].feature_count
+                clistraw.append({str(m): nmotors})
+            except Exception:
+                clistraw.append(str(m))
+                pass
     data['commands'] = clist
+    data['buttplugraw'] = clistraw
     myclasses.createdefaultfile(f"{dev.name}.json", data)
 
 
@@ -184,7 +196,7 @@ async def rotatedevice(device: ButtplugClientDevice, items) -> None:
         return
 
 
-async def deviceprobe(item, dev: ButtplugClient, device_msg=None) -> None:
+async def deviceprobe(item, dev: ButtplugClient) -> None:
     # look for a toy that matches the name passed, and if it is present execute the command
     name = item[0][0]
     command = item[0][1][0]
@@ -195,7 +207,7 @@ async def deviceprobe(item, dev: ButtplugClient, device_msg=None) -> None:
             # this will help not to do a full reset after a dropped bluetooth connection
             await dev.stop_scanning()
             await dev.start_scanning()
-            # test rotating device withouth connecting one to interface delete me after testing
+            # test rotating device without connecting one to interface delete me after testing
             # if command == myclasses.BpDevCommand.Rotate.value:
             #    await rotatedevice(dev, item)
         else:
@@ -208,7 +220,7 @@ async def deviceprobe(item, dev: ButtplugClient, device_msg=None) -> None:
                     elif command == myclasses.BpDevCommand.Rotate.value:
                         await rotatedevice(device, item)
                     elif command == myclasses.BpDevCommand.Stop.value:
-                        printbpcoms("Stoping : " + name)
+                        printbpcoms(f"Stoping : {name}")
                         await dev.devices[key].send_stop_device_cmd()
                 else:
                     printbpcoms(f"no device found to match this name : {name} or command : {command}")

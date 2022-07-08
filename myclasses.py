@@ -95,6 +95,7 @@ class OscServerData:
 
 
 # enum of valid commands for devices in osctobutplug
+# they have to match 1:1 in value with BpDevCommandInterface
 class BpDevCommand(Enum):
     Stop = 1
     Vibrate = 2
@@ -102,6 +103,7 @@ class BpDevCommand(Enum):
 
 
 # enum of valid commands for devices in Buttplug and controllable in osctobutplug
+# they have to match 1:1 in value with BpDevCommand
 class BpDevCommandInterface(Enum):
     StopDeviceCmd = 1
     VibrateCmd = 2
