@@ -281,7 +281,7 @@ async def clearqueue(q: janus.AsyncQueue[int])-> None:
         pass
 
 
-async def connectedclient(client, ws, connector, q_in_l,mainconfig) -> ButtplugClient:
+async def connectedclient(q_in_l, mainconfig) -> ButtplugClient:
     while True:
         try:
             # clear the queue commands so that it won't hold old commands while we can't send them to Interface
@@ -332,18 +332,12 @@ async def runclienttask(client, q_in_l) -> None:
 
 async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q_estate: janus.AsyncQueue[int]) -> None:
     printbpcoms("Starging Osc to butplug")
-    # Empty client/connector variables to initilize them inside the loop later.
-    client = None
-    connector = None
-    # websockets configuration from the .json configuration file.
-    ws = f"ws://{mainconfig.mainconfig['InterfaceWS']}"
-
     # run the client/connector in a looop to reset themselves if the connetion is dropped.
     # this should prevent relaunching the full script if the ws connection is dropped
     while True:
         try:
-            # instanciate a new client object from a helper function
-            client = await connectedclient(client, ws, connector, q_in_l, mainconfig)
+            # instantiate a new client object from a helper function
+            client = await connectedclient(q_in_l, mainconfig)
             # start running the client and listening to messages from OSC
             await runclienttask(client, q_in_l)
 
