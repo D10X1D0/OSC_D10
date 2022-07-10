@@ -9,9 +9,15 @@ from D10ButtplugClientWebsocketConnector import D10ButtplugClientWebsocketConnec
 import myclasses
 from printcolors import bcolors
 
+
 def printbpcoms(text) -> None:
-    msg = f"{bcolors.OKCYAN} btcoms : {bcolors.ENDC} {text}"
+    msg =f"{bcolors.OKCYAN} btcoms : {bcolors.ENDC} {text}"
     print(msg)
+
+
+def printbpcomswarning(text) -> None:
+    msg =f"{bcolors.WARNING} btcoms : {bcolors.ENDC} {text}"
+    printbpcoms(msg)
 
 
 async def devicedump(dev: ButtplugClientDevice) -> None:
@@ -24,7 +30,6 @@ async def devicedump(dev: ButtplugClientDevice) -> None:
         await serializedevice(dev)
     except Exception as e:
         printbpcoms(f"Error creating a dump file for {dev.name} : {e}")
-
 
 
 async def serializedevice(dev: ButtplugClientDevice):
@@ -250,7 +255,9 @@ async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) ->
                 await deviceprobe(item, dev)
             else:
                 printbpcoms(f"Client disconnected from Interface desktop, restart this aplication to try to reconnect")
-
+                raise ConnectionError
+        except ConnectionError:
+            break
         except Exception as e :
             print(f"listenqueloop error : {e}")
 
@@ -262,7 +269,7 @@ async def listenque(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> Non
         print(f"listenque error : {e}")
 
 
-async def clearqueue(q: janus.AsyncQueue[int]):
+async def clearqueue(q: janus.AsyncQueue[int])-> None:
     # this sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually.
     try:
         x = q.qsize()
@@ -274,13 +281,12 @@ async def clearqueue(q: janus.AsyncQueue[int]):
         pass
 
 
-async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q_estate: janus.AsyncQueue[int]) -> None:
-    printbpcoms("Starging Osc to butplug")
+async def connectedclient(client, ws, connector, q_in_l,mainconfig) -> ButtplugClient:
     while True:
         try:
             # clear the queue commands so that it won't hold old commands while we can't send them to Interface
             await clearqueue(q_in_l)
-            printbpcoms("Starging the configuration to connect to Interface")
+            printbpcoms("Starting the configuration to connect to Interface")
             """ We setup a client object to talk with Interface and it's connection"""
             client = ButtplugClient("OSC_D10")
             ws = f"ws://{mainconfig.mainconfig['InterfaceWS']}"
@@ -294,25 +300,54 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q
             printbpcoms("Trying to  connect to  Interface server")
             await client.connect(connector)
             printbpcoms("Could connect to  Interface server")
-            break
+            return client
         except ButtplugClientConnectorError as e:
             printbpcoms(f"Could not connect to Interface server, retrying in 1s :  {e}")
             await asyncio.sleep(1)
         except Exception as e:
             printbpcoms(f"Exception in work : {e}")
 
+
+async def runclienttask(client, q_in_l) -> None:
     try:
         await client.start_scanning()
         """Start the queue listening"""
-        task2 = asyncio.create_task(listenque(q_in_l, client), name = "oscbplistenque")
+        task2 = asyncio.create_task(listenque(q_in_l, client), name="oscbplistenque")
         await task2
-
         """When the task stops we stop the server scanning for devices and close the connection"""
-        printbpcoms("Exiting butplugcoms")
+        printbpcoms("Exiting client task")
         await client.stop_scanning()
         await client.disconnect()
+
+    except ButtplugClientConnectorError as e:
+        printbpcomswarning(e.message)
+        return
+
     except RuntimeError as e:
-        printbpcoms(f"something went wrong running OSCtobutplug {e}")
+        printbpcoms(f"runclientlopg OSCtobutplug re {e} {sys.exc_info()}")
+
     except Exception as e:
-        printbpcoms(f"something went wrong running OSCtobutplug {e}")
-    printbpcoms("work done")
+        printbpcoms(f"runclientlop running OSCtobutplug ex {e} {sys.exc_info()}")
+
+
+async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q_estate: janus.AsyncQueue[int]) -> None:
+    printbpcoms("Starging Osc to butplug")
+    # Empty client/connector variables to initilize them inside the loop later.
+    client = None
+    connector = None
+    # websockets configuration from the .json configuration file.
+    ws = f"ws://{mainconfig.mainconfig['InterfaceWS']}"
+
+    # run the client/connector in a looop to reset themselves if the connetion is dropped.
+    # this should prevent relaunching the full script if the ws connection is dropped
+    while True:
+        try:
+            # instanciate a new client object from a helper function
+            client = await connectedclient(client, ws, connector, q_in_l, mainconfig)
+            # start running the client and listening to messages from OSC
+            await runclienttask(client, q_in_l)
+
+        except Exception as e:
+            print(f"Exception {e}")
+            break
+    printbpcoms("OSCToButtplug shutting down.")

@@ -25,8 +25,6 @@ class D10ButtplugClientWebsocketConnector(ButtplugClientConnector):
         self._connected = True
         asyncio.create_task(self._consumer_handler(), name="consumerhandler")
 
-
-
     async def _consumer_handler(self):
         # Guessing that this fails out once the websocket disconnects?
         while True:
@@ -38,7 +36,6 @@ class D10ButtplugClientWebsocketConnector(ButtplugClientConnector):
                 print(f"Connection closed exception : {sys.exc_info()}")
                 logging.error("Exiting read loop WS conection closed")
                 await self.disconnect()
-                logging.error("_consumer_handler WS disconnected")
                 logging.error(e)
                 break
             except Exception as e:
