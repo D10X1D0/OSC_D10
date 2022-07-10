@@ -5,10 +5,9 @@ import janus
 from buttplug.client import ButtplugClient, ButtplugClientWebsocketConnector, ButtplugClientConnectorError, \
     ButtplugClientDevice
 from buttplug.core import ButtplugDeviceError
-
+from D10ButtplugClientWebsocketConnector import D10ButtplugClientWebsocketConnector
 import myclasses
 from printcolors import bcolors
-
 
 def printbpcoms(text) -> None:
     msg = f"{bcolors.OKCYAN} btcoms : {bcolors.ENDC} {text}"
@@ -149,7 +148,10 @@ async def vibratedevice(device: ButtplugClientDevice, items) -> None:
         await device.send_vibrate_cmd(command)
     except ButtplugDeviceError as e:
         printbpcoms(f'configured motor outside of the device range. {e}')
-
+    except ButtplugClientConnectorError as e:
+        # ask the connection loop to retry the connection
+        printbpcoms(f"ButtplugClientConnectorError, disconnected? {e}")
+        raise ButtplugClientConnectorError(e)
     except Exception as e:
         printbpcoms(f"device error, disconnected? {e}")
 
@@ -244,7 +246,11 @@ async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) ->
         # printbpcoms("Reading....")
         # printbpcoms(item)
         try:
-            await deviceprobe(item, dev)
+            if dev.connector.connected:
+                await deviceprobe(item, dev)
+            else:
+                printbpcoms(f"Client disconnected from Interface desktop, restart this aplication to try to reconnect")
+
         except Exception as e :
             print(f"listenqueloop error : {e}")
 
@@ -278,7 +284,9 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q
             """ We setup a client object to talk with Interface and it's connection"""
             client = ButtplugClient("OSC_D10")
             ws = f"ws://{mainconfig.mainconfig['InterfaceWS']}"
-            connector = ButtplugClientWebsocketConnector(ws)
+            # connector = ButtplugClientWebsocketConnector(ws)
+            # edited websockets connector that will set itself as disconnected when the websockets connection drops.
+            connector = D10ButtplugClientWebsocketConnector(ws)
             """Handler functions to catch when a device connects and disconnects from the server"""
             client.device_added_handler += device_added
             client.device_removed_handler += device_removed
@@ -287,8 +295,8 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q
             await client.connect(connector)
             printbpcoms("Could connect to  Interface server")
             break
-        except ButtplugClientConnectorError:
-            printbpcoms("Could not connect to Interface server, retrying in 1s")
+        except ButtplugClientConnectorError as e:
+            printbpcoms(f"Could not connect to Interface server, retrying in 1s :  {e}")
             await asyncio.sleep(1)
         except Exception as e:
             printbpcoms(f"Exception in work : {e}")
@@ -296,7 +304,7 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q
     try:
         await client.start_scanning()
         """Start the queue listening"""
-        task2 = asyncio.create_task(listenque(q_in_l, client))
+        task2 = asyncio.create_task(listenque(q_in_l, client), name = "oscbplistenque")
         await task2
 
         """When the task stops we stop the server scanning for devices and close the connection"""
