@@ -19,7 +19,7 @@ def printprocesserr(msg) -> None:
 
 async def pulse(cli: udp_client.SimpleUDPClient, addr: str, timings):
     while True:
-        printprocess(f"pulsing {addr} {timings}")
+        printprocess(f"pulsing {addr}  delay {timings[0]} s : value {timings[1]} : type {type(timings[1]).__name__}")
         cli.send_message(addr, timings[1])
         await asyncio.sleep(timings[0])
 
