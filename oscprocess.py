@@ -13,7 +13,7 @@ def printprocess(msg) -> None:
 
 
 def printprocesserr(msg) -> None:
-    msg = bcolors.WARNING + msg + bcolors.ENDC
+    msg = f"{bcolors.WARNING} msg {bcolors.ENDC}"
     printprocess(msg)
 
 
