@@ -1,22 +1,23 @@
 import asyncio
-import sys
 
 import janus
-from buttplug.client import ButtplugClient, ButtplugClientWebsocketConnector, ButtplugClientConnectorError, \
-    ButtplugClientDevice
+import sys
+
+from buttplug.client import ButtplugClient, ButtplugClientConnectorError, ButtplugClientDevice
 from buttplug.core import ButtplugDeviceError
 from D10ButtplugClientWebsocketConnector import D10ButtplugClientWebsocketConnector
+
 import myclasses
 from printcolors import bcolors
 
 
 def printbpcoms(text) -> None:
-    msg =f"{bcolors.OKCYAN} btcoms : {bcolors.ENDC} {text}"
+    msg = f"{bcolors.OKCYAN} btcoms : {bcolors.ENDC} {text}"
     print(msg)
 
 
 def printbpcomswarning(text) -> None:
-    msg =f"{bcolors.WARNING} btcoms : {bcolors.ENDC} {text}"
+    msg = f"{bcolors.WARNING} btcoms : {bcolors.ENDC} {text}"
     printbpcoms(msg)
 
 
@@ -254,7 +255,7 @@ async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) ->
             if dev.connector.connected:
                 await deviceprobe(item, dev)
             else:
-                printbpcoms(f"Client disconnected from Interface desktop, restart this aplication to try to reconnect")
+                printbpcoms(f"Client disconnected from Interface desktop.")
                 raise ConnectionError
         except ConnectionError:
             break
@@ -281,7 +282,7 @@ async def clearqueue(q: janus.AsyncQueue[int])-> None:
         pass
 
 
-async def connectedclient(q_in_l, mainconfig) -> ButtplugClient:
+async def connectedclient(q_in_l: janus.AsyncQueue[int], mainconfig) -> ButtplugClient:
     while True:
         try:
             # clear the queue commands so that it won't hold old commands while we can't send them to Interface
@@ -308,7 +309,7 @@ async def connectedclient(q_in_l, mainconfig) -> ButtplugClient:
             printbpcoms(f"Exception in work : {e}")
 
 
-async def runclienttask(client, q_in_l) -> None:
+async def runclienttask(client, q_in_l: janus.AsyncQueue[int]) -> None:
     try:
         await client.start_scanning()
         """Start the queue listening"""
