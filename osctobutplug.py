@@ -331,7 +331,7 @@ async def runclienttask(client, q_in_l: janus.AsyncQueue[int]) -> None:
         printbpcoms(f"runclientlop running OSCtobutplug ex {e} {sys.exc_info()}")
 
 
-async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int], q_estate: janus.AsyncQueue[int]) -> None:
+async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int]) -> None:
     printbpcoms("Starging Osc to butplug")
     # run the client/connector in a looop to reset themselves if the connetion is dropped.
     # this should prevent relaunching the full script if the ws connection is dropped

@@ -63,7 +63,7 @@ async def main():
         if config.mainconfig["OSCtoButtplug"]:
             # osctobutplug will be the buttplug client/connector to talk to Interface and control devices.
             # loop.create_task(osctobutplug.butplugcoms, config, qBP.async_q, qstate.async_q)
-            taskbtplug = asyncio.create_task(osctobutplug.work(config, qbp.async_q, loop), name="OSCtoButtplug")
+            taskbtplug = asyncio.create_task(osctobutplug.work(config, qbp.async_q), name="OSCtoButtplug")
             taskobjectlist.append(taskbtplug)
             ntasks += 1
             # asyncio.create_task(osctobutplug.work(config, qBP.async_q, loop))
@@ -97,12 +97,12 @@ async def main():
     except Exception as exc:
         print(f"Error in Main: {exc}")
 
-
-try:
-    asyncio.run(main())
-except KeyboardInterrupt:
-    print(f"{bcolors.WARNING} Program closed....{ bcolors.ENDC}")
-except RuntimeError as e:
-    print(f"{bcolors.WARNING} All shut down, error/s happened {bcolors.ENDC} {e}")
-except Exception:
-    print(f"{bcolors.WARNING} Program closed....{bcolors.ENDC}")
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print(f"{bcolors.WARNING} Program closed....{ bcolors.ENDC}")
+    except RuntimeError as e:
+        print(f"{bcolors.WARNING} All shut down, error/s happened {bcolors.ENDC} {e}")
+    except Exception:
+        print(f"{bcolors.WARNING} Program closed....{bcolors.ENDC}")
