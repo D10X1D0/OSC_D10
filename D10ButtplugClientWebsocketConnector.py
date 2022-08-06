@@ -11,7 +11,10 @@ from websockets.exceptions import ConnectionClosedError
 
 
 class D10ButtplugClientWebsocketConnector(ButtplugClientConnector):
-
+    """
+    I just changed the _consumer_handler function to detect a ws disconnection and set the object as disconnected.
+    I'm relying on this to let the client know that the connection was dropped and making a new instance/connection.
+    """
     def __init__(self, addr: str):
         super().__init__()
         self.addr: str = addr
@@ -21,7 +24,7 @@ class D10ButtplugClientWebsocketConnector(ButtplugClientConnector):
         try:
             self.ws = await websockets.connect(self.addr)
         except ConnectionRefusedError as e:
-            raise ButtplugClientConnectorError(e)
+            raise ButtplugClientConnectorError("ConnectionRefusedError")
         self._connected = True
         asyncio.create_task(self._consumer_handler(), name="consumerhandler")
 

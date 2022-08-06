@@ -12,16 +12,19 @@ from printcolors import bcolors
 
 
 def printbpcoms(text) -> None:
+    """helper fuction to print with pretty colors the name and message to the console"""
     msg = f"{bcolors.OKCYAN} btcoms : {bcolors.ENDC} {text}"
     print(msg)
 
 
 def printbpcomswarning(text) -> None:
+    """helper fuction to print with pretty colors the name and message to the console"""
     msg = f"{bcolors.WARNING} btcoms : {bcolors.ENDC} {text}"
-    printbpcoms(msg)
+    print(msg)
 
 
 async def devicedump(dev: ButtplugClientDevice) -> None:
+    """Create a devicename.json file with all it's supported commands"""
     dname = dev.name
     try:
         myclasses.tryreadjson(f"{dname}.json")
@@ -34,6 +37,7 @@ async def devicedump(dev: ButtplugClientDevice) -> None:
 
 
 async def serializedevice(dev: ButtplugClientDevice):
+    """Read and format the buttplug device information into a dict() and print it to a .json file"""
     printbpcoms(f"Creating dump file for {dev.name}")
     data = dict()
     clist = list()
@@ -70,30 +74,18 @@ async def serializedevice(dev: ButtplugClientDevice):
 
 
 async def device_added_task(dev: ButtplugClientDevice) -> None:
-    # Ok, so we got a new device in! Neat!
-    #
-    # First off, we'll print the name of the devices, and its allowed messages.
+    """Writtes new connected device's information to the console and to a devicename.json file."""
     printbpcoms("Device Added: {}".format(dev.name))
     printbpcoms(dev.allowed_messages.keys())
     await devicedump(dev)
-    # Once we've done that, we can send some commands to the device, depending
-    # on what it can do. As of the current version I'm writing this for
-    # (v0.0.3), all the client can send to devices are generic messages.
-    # Specifically:
-    #
-    # - VibrateCmd
-    # - RotateCmd
-    # - LinearCmd
-    #
-    # However, this is good enough to still do a lot of stuff.
-    #
-    # These capabilities are held in the "messages" member of the
-    # ButtplugClientDevice.
-
     if "VibrateCmd" in dev.allowed_messages.keys():
         printbpcoms(f"Device bibrates and has {dev.allowed_messages['VibrateCmd'].feature_count} motors")
 
     if "LinearCmd" in dev.allowed_messages.keys():
+        """Linear devices are scary to control safely from OSC, I don't want to harm anyone, 
+            so this won't be implemented jet
+            I'm leaving the device command examples from the python buttplug example for the future.
+        """
         printbpcoms("Device has linear motion, not implemented to control jet")
         # If we see that "LinearCmd" is an allowed message, it means the device
         # can move back and forth. We can call send_linear_cmd on the device
@@ -119,13 +111,14 @@ def device_removed(emitter, dev: ButtplugClientDevice) -> None:
     printbpcoms(f"Device removed: {dev}")
 
 
-async def vibratedevice(device: ButtplugClientDevice, items) -> None:
+async def vibratedevice(device: ButtplugClientDevice, devicecommand) -> None:
+    """Ask the buttplug server to vibrate the device motor/s, rounds the speed to be inside 0->1 range"""
     # await device.send_vibrate_cmd({m: value})
-    name = items[0][0]
-    motorlist = items[0][1][1]
+    name = devicecommand[0][0]
+    motorlist = devicecommand[0][1][1]
     # make sure the value is inside the range 0->1
     try:
-        value = max(min(float(items[1]), 1.0), 0.0)
+        value = max(min(float(devicecommand[1]), 1.0), 0.0)
     except Exception as e:
         printbpcoms(f"received a value outside of the valid float range (0.0-> 1.0) : {e}")
         return
@@ -155,19 +148,19 @@ async def vibratedevice(device: ButtplugClientDevice, items) -> None:
     except ButtplugDeviceError as e:
         printbpcoms(f'configured motor outside of the device range. {e}')
     except ButtplugClientConnectorError as e:
-        # ask the connection loop to retry the connection
         printbpcoms(f"ButtplugClientConnectorError, disconnected? {e}")
-        raise ButtplugClientConnectorError(e)
+        raise ButtplugClientConnectorError("ButtplugClientConnectorError, disconnected?")
     except Exception as e:
         printbpcoms(f"device error, disconnected? {e}")
 
 
-async def rotatedevice(device: ButtplugClientDevice, items) -> None:
+async def rotatedevice(device: ButtplugClientDevice, devicecommand) -> None:
+    """Ask the buttplug server to rotate the device motor/s, rounds the speed to be inside 0->1 range"""
     try:
-        name = items[0][0]
-        motorlist = items[0][1][1]
+        name = devicecommand[0][0]
+        motorlist = devicecommand[0][1][1]
         # make sure the value is inside the range 0->1
-        value = max(min(float(items[1]), 1.0), 0.0)
+        value = max(min(float(devicecommand[1]), 1.0), 0.0)
         command = dict()
     except Exception as e:
         print("Could not read the command to rotatedevice : {e}")
@@ -211,10 +204,13 @@ async def rotatedevice(device: ButtplugClientDevice, items) -> None:
         return
 
 
-async def deviceprobe(item, dev: ButtplugClient) -> None:
+async def deviceprobe(devicecommand, dev: ButtplugClient) -> None:
+    """Sends the incoming command to a buttplug device.
+    It will ask the server to scan for devices if the one in the command is not connected.
+    """
     # look for a toy that matches the name passed, and if it is present execute the command
-    name = item[0][0]
-    command = item[0][1][0]
+    name = devicecommand[0][0]
+    command = devicecommand[0][1][0]
     try:
         if len(dev.devices) == 0:
             printbpcoms(f"Device not connected : {name}")
@@ -231,9 +227,9 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
                     # print(f"device is connected , command {command}")
                     device = dev.devices[key]
                     if command == myclasses.BpDevCommand.Vibrate.value:
-                        await vibratedevice(device, item)
+                        await vibratedevice(device, devicecommand)
                     elif command == myclasses.BpDevCommand.Rotate.value:
-                        await rotatedevice(device, item)
+                        await rotatedevice(device, devicecommand)
                     elif command == myclasses.BpDevCommand.Stop.value:
                         printbpcoms(f"Stoping : {name}")
                         await dev.devices[key].send_stop_device_cmd()
@@ -245,15 +241,15 @@ async def deviceprobe(item, dev: ButtplugClient) -> None:
         printbpcoms(f"Device error x {e}")
 
 
-async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> None:
+async def listenqueloop(q_listen: janus.AsyncQueue[int], bpclient: ButtplugClient) -> None:
+    """Loop that reads incoming OSC commands and sends them to the buttplug device"""
     printbpcoms("listening for commands from oscbridge")
     while True:
-        item = await q_listen.get()
-        # printbpcoms("Reading....")
-        # printbpcoms(item)
+        # get a command item from the queue
+        devicecommand = await q_listen.get()
         try:
-            if dev.connector.connected:
-                await deviceprobe(item, dev)
+            if bpclient.connector.connected:
+                await deviceprobe(devicecommand, bpclient)
             else:
                 printbpcoms(f"Client disconnected from Interface desktop.")
                 raise ConnectionError
@@ -263,26 +259,27 @@ async def listenqueloop(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) ->
             print(f"listenqueloop error : {e}")
 
 
-async def listenque(q_listen: janus.AsyncQueue[int], dev: ButtplugClient) -> None:
+async def listenque(q_listen: janus.AsyncQueue[int], bpclient: ButtplugClient) -> None:
+    """Wrapper for the queue reading loop"""
     try:
-        await listenqueloop(q_listen, dev)
+        await listenqueloop(q_listen, bpclient)
     except Exception as e:
         print(f"listenque error : {e}")
 
 
 async def clearqueue(q: janus.AsyncQueue[int])-> None:
-    # this sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually.
+    """sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually."""
     try:
         x = q.qsize()
         for i in range(x):
             await q.get()
-        # printbpcoms(f"q.length {q.unfinished_tasks}")
     except Exception as e:
         printbpcoms(f"error clearing the command queue {e}")
         pass
 
 
 async def connectedclient(q_in_l: janus.AsyncQueue[int], mainconfig) -> ButtplugClient:
+    """Returns a configured and connected buttplug client. Loops until a connection is made."""
     while True:
         try:
             # clear the queue commands so that it won't hold old commands while we can't send them to Interface
@@ -297,19 +294,21 @@ async def connectedclient(q_in_l: janus.AsyncQueue[int], mainconfig) -> Buttplug
             """Handler functions to catch when a device connects and disconnects from the server"""
             client.device_added_handler += device_added
             client.device_removed_handler += device_removed
+            state = "client configured, ready to be connected"
             """Try to connect to the server"""
             printbpcoms("Trying to  connect to  Interface server")
             await client.connect(connector)
             printbpcoms("Could connect to  Interface server")
+            state = "client connected"
             return client
         except ButtplugClientConnectorError as e:
             printbpcoms(f"Could not connect to Interface server, retrying in 1s :  {e}")
+            state = "Disconnected, could not connect"
             await asyncio.sleep(1)
-        except Exception as e:
-            printbpcoms(f"Exception in work : {e}")
 
 
 async def runclienttask(client, q_in_l: janus.AsyncQueue[int]) -> None:
+    """Starts the buttplug client scanning and reading the incoming commands from the queue inside a task."""
     try:
         await client.start_scanning()
         """Start the queue listening"""
@@ -319,7 +318,6 @@ async def runclienttask(client, q_in_l: janus.AsyncQueue[int]) -> None:
         printbpcoms("Exiting client task")
         await client.stop_scanning()
         await client.disconnect()
-
     except ButtplugClientConnectorError as e:
         printbpcomswarning(e.message)
         return
@@ -332,6 +330,11 @@ async def runclienttask(client, q_in_l: janus.AsyncQueue[int]) -> None:
 
 
 async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int]) -> None:
+    """
+    Creates tasks to read the incoming queue commands and sends them to the buttplug server
+    The tasks will try to reconnect to the Buttplug server until a connection is made, and after it was dropped.
+    It will also ask the buttplug server to rescan devices if a command asks for a device not currently connected.
+    """
     printbpcoms("Starging Osc to butplug")
     # run the client/connector in a looop to reset themselves if the connetion is dropped.
     # this should prevent relaunching the full script if the ws connection is dropped
@@ -346,3 +349,4 @@ async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int]) -
             print(f"Exception {e}")
             break
     printbpcoms("OSCToButtplug shutting down.")
+
