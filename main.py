@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 import janus
 import myclasses
 import oscprocess
@@ -35,10 +36,10 @@ async def main():
         exit()
     # A async/sync queque to send the commands from the sync osc server thread to async buttplug thread
     # Queue for oscprocess
-    qproc: janus.Queue[int] = janus.Queue()
-    qstate: janus.Queue[int] = janus.Queue()
+    qproc: janus.Queue[Any] = janus.Queue()
+    qstate: janus.Queue[Any] = janus.Queue()
     # Queue for comunicating back to osctobutplug
-    qbp: janus.Queue[int] = janus.Queue()
+    qbp: janus.Queue[Any] = janus.Queue()
     loop = asyncio.get_running_loop()
     #number of tasks that will be running
     ntasks = 0
@@ -46,7 +47,7 @@ async def main():
     try:
         if config.mainconfig["OSCBridge"] or config.mainconfig["OSCPass"] or config.mainconfig["OSCprocess"]:
             """ 
-                t1 will be the OSC server listening for commands
+                bridge will be the OSC server listening for commands
                 the osc server is not async, so we run it inside a separate thread/executor.
                 and get info back with a sync/async janus.Queue 
             """
@@ -74,7 +75,6 @@ async def main():
         # dummy task to keep the main loop running
         taskdummy = asyncio.create_task(cancel_me(ntasks))
         taskobjectlist.append(taskdummy)
-
         # check the states of the tasks as they finish
         try:
             done, pending = await asyncio.wait(

@@ -1,30 +1,32 @@
+from typing import Any
 import asyncio
-
 import janus
 from pythonosc import udp_client
-
-import myclasses
 import printcolors
 from printcolors import bcolors
+import myclasses
 
 
 def printprocess(msg) -> None:
+    """Helper function to print with colors"""
     print(f"{bcolors.HEADER2} OSCProc : {bcolors.ENDC} {msg}")
 
 
 def printprocesserr(msg) -> None:
-    msg = f"{bcolors.WARNING} msg {bcolors.ENDC}"
-    printprocess(msg)
+    """Helper function to print with colors"""
+    printprocess(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
 async def pulse(cli: udp_client.SimpleUDPClient, addr: str, timings):
+    """Sends a value every X seconds to an OSC adress, should be run a task"""
     while True:
         printprocess(f"pulsing {addr}  delay {timings[0]} s : value {timings[1]} : type {type(timings[1]).__name__}")
         cli.send_message(addr, timings[1])
         await asyncio.sleep(timings[0])
 
 
-async def startpulse(con: myclasses.MainData, cli: udp_client.SimpleUDPClient, loop) -> None:
+async def startpulse(con: myclasses.MainData, cli: udp_client.SimpleUDPClient) -> None:
+    """Creates and starts running pulse takss from the configured commands."""
     try:
         lconfig = myclasses.OscServerData().proces
         # printprocess(lconfig)
@@ -46,13 +48,13 @@ async def startpulse(con: myclasses.MainData, cli: udp_client.SimpleUDPClient, l
                 else:
                     printprocess(f"{printcolors.bcolors.FAIL}pulse too fast, faster than 0.1s, "
                                  f"skipping it timing: {timings} {printcolors.bcolors.FAIL}")
-                #pulse(cli, adres, timing)
 
     except Exception as e:
         printprocess(f"Error creating pulse task {e}")
 
 
 async def startrespond(q_com, cli: udp_client.SimpleUDPClient) -> None:
+    """Starts respond, reads an OSC value and sends another back to the same direction"""
     while True:
         try:
             item = await q_com.get()
@@ -60,7 +62,7 @@ async def startrespond(q_com, cli: udp_client.SimpleUDPClient) -> None:
             if taskname == "respond":
                 oscvalue = item[0]
                 if isinstance(oscvalue, float):
-                    #if we get a float, we round it to 2 decimals
+                    # if we get a float, we round it to 2 decimals
                     oscvalue = round(oscvalue, 2)
                 # printprocesserr(str(oscvalue))
                 datain = item[1][1][0]
@@ -81,13 +83,12 @@ async def startrespond(q_com, cli: udp_client.SimpleUDPClient) -> None:
             pass
 
 
-async def process(q_com: janus.AsyncQueue[int], config: myclasses.MainData, loop):
+async def process(q_com: janus.AsyncQueue[Any], config: myclasses.MainData.mainconfig):
+    """configures and starts process taks : pulse, and respond"""
     try:
         printprocess("Procestask")
         cli = udp_client.SimpleUDPClient(config.mainconfig["OSCSendIP"], config.mainconfig["OSCSendPort"])
-        # asyncio.get_running_loop().create_task()
-        await startpulse(config, cli, loop)
+        await startpulse(config, cli)
         await startrespond(q_com, cli)
     except Exception as e:
         printprocess(f"Shutting down : {e}")
-

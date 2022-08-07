@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import janus
 import sys
@@ -23,91 +24,88 @@ def printbpcomswarning(text) -> None:
     print(msg)
 
 
-async def devicedump(dev: ButtplugClientDevice) -> None:
+async def devicedump(dev: ButtplugClientDevice, serializeddevice : dict()) -> None:
     """Create a devicename.json file with all it's supported commands"""
     dname = dev.name
     try:
         myclasses.tryreadjson(f"{dname}.json")
-        printbpcoms(f"Dump file already exists, skipping creating it. {dev.name}")
-    except FileNotFoundError as e:
-        printbpcoms(f"Dump file does not exist, creating it. {dev.name}")
-        await serializedevice(dev)
+        printbpcoms(f"Dump file already exists, skipping creating it. {dname}")
+    except FileNotFoundError:
+        printbpcoms(f"Dump file does not exist, creating it. {dname}")
+        myclasses.createdefaultfile(f"{dname}.json", serializeddevice)
     except Exception as e:
-        printbpcoms(f"Error creating a dump file for {dev.name} : {e}")
+        printbpcoms(f"Error creating a dump file for {dname} : {e}")
 
 
-async def serializedevice(dev: ButtplugClientDevice):
+async def serializedevice(dev: ButtplugClientDevice) -> dict():
     """Read and format the buttplug device information into a dict() and print it to a .json file"""
     printbpcoms(f"Creating dump file for {dev.name}")
-    data = dict()
+    # dictionary with devicename, osctobuttplugcomamnds:, buttplug raw commands
+    serializabledata = dict()
+    # dictionary that will contain the osctobuttplug supported commands
     clist = list()
+    # dictionary that will contain all the device's buttplug supported commands.
     clistraw = list()
-    data['devname'] = str(dev.name)
-    for m in dev.allowed_messages:
+    # Start the data dictionary with the device name.
+    serializabledata['devicename'] = str(dev.name)
+    for msg in dev.allowed_messages:
+        """Check if it has .featurecount, indicates number of motors/vibrators."""
+        fcount = None
         try:
-            # check if the message is a implemented command and translate it to the OSCtobutplug name.
-            bpnamevalue = myclasses.BpDevCommandInterface[str(m)].value
-            octobpname = myclasses.BpDevCommand(bpnamevalue).name
-            try:
-                # check the featurecount and fail if it does not exist for the current command
-                nmotors = dev.allowed_messages[str(m)].feature_count
-                clist.append({str(octobpname): nmotors})
-                clistraw.append({str(m): nmotors})
-            except AttributeError as e:
-                # the current command does not have .featurecount attribute
-                clist.append(str(octobpname))
-                clistraw.append(str(m))
+            fcount = dev.allowed_messages[str(msg)].feature_count
+            """The current message has a .featurecount"""
+            # printbpcoms(f"The message {msg}, has .featurecount = {fcount}")
+        except AttributeError:
+            """The current message does not have a .featurecount"""
+            # printbpcoms(f"The message {msg}, does not have .featurecount")
 
-        except Exception as e:
-            print(sys.exc_info())
-            printbpcoms(f"{m} is not implemented in osctobuttplug {e}")
-            try:
-                # check the featurecount if it has vibrating or rotating motors
-                nmotors = dev.allowed_messages[str(m)].feature_count
-                clistraw.append({str(m): nmotors})
-            except Exception:
-                clistraw.append(str(m))
-                pass
-    data['commands'] = clist
-    data['buttplugraw'] = clistraw
-    myclasses.createdefaultfile(f"{dev.name}.json", data)
+        """Check if it's implemented in OSCtobuttplug and translate its name to the internal one."""
+        try:
+            # buttplug command name's value from (BpDevCommandInterface(Enum))
+            bpnamevalue = myclasses.BpDevCommandInterface[str(msg)].value
+            # osctobuttplug command name's translated (BpDevCommand(Enum))
+            octobpname = myclasses.BpDevCommand(bpnamevalue).name
+            """It's implemented in OSCtobuttlug and it's name could be translated"""
+            if fcount is None:
+                """no featurecount for the current command, just add the command name to the list/dict"""
+                clist.append(str(octobpname))
+                clistraw.append(str(msg))
+            else:
+                """no featurecount for the current command, adding it to the command name"""
+                clist.append({str(octobpname): fcount})
+                clistraw.append({str(msg): fcount})
+        except KeyError:
+            """It's not implemented in OSCtobuttlug or could not be translated"""
+            if fcount is None:
+                # printbpcoms(f"appending {msg} without fcount to bprraw")
+                clistraw.append(str(msg))
+            else:
+                # printbpcoms(f"appending {msg} with fcount = {fcount} to bprraw")
+                clistraw.append({str(msg): fcount})
+
+    serializabledata['osctobuttplugcommands'] = clist
+    serializabledata['buttplugrawcommands'] = clistraw
+    return serializabledata
 
 
 async def device_added_task(dev: ButtplugClientDevice) -> None:
-    """Writtes new connected device's information to the console and to a devicename.json file."""
+    """Generates a dict() with the device name and propertys and creates a devicename.json file on disk"""
     printbpcoms("Device Added: {}".format(dev.name))
-    printbpcoms(dev.allowed_messages.keys())
-    await devicedump(dev)
-    if "VibrateCmd" in dev.allowed_messages.keys():
-        printbpcoms(f"Device bibrates and has {dev.allowed_messages['VibrateCmd'].feature_count} motors")
-
-    if "LinearCmd" in dev.allowed_messages.keys():
-        """Linear devices are scary to control safely from OSC, I don't want to harm anyone, 
-            so this won't be implemented jet
-            I'm leaving the device command examples from the python buttplug example for the future.
-        """
-        printbpcoms("Device has linear motion, not implemented to control jet")
-        # If we see that "LinearCmd" is an allowed message, it means the device
-        # can move back and forth. We can call send_linear_cmd on the device
-        # and it'll tell the server to make the device move to 90% of the
-        # maximum position over 1 second (1000ms).
-        """
-        await dev.send_linear_cmd((1000, 0.9))
-        # We wait 1 second for the move, then we move it back to the 0%
-        # position.
-        "await asyncio.sleep(1)
-        "await dev.send_linear_cmd((1000, 0))
-        """
-
-    if "RotateCmd" in dev.allowed_messages.keys():
-        printbpcoms("device rotates, not tested yet.")
+    # get the serialized device data
+    devdata = await serializedevice(dev)
+    # Print it to the console
+    printbpcoms(devdata)
+    # dump it to disk inside a devicename.json file
+    # await devicedump(dev, devdata)
 
 
 def device_added(emitter, dev: ButtplugClientDevice) -> None:
+    """Callback used by the client when a device is added to the server"""
     asyncio.create_task(device_added_task(dev))
 
 
 def device_removed(emitter, dev: ButtplugClientDevice) -> None:
+    """Callback used by the client when a device is removed from the server"""
     printbpcoms(f"Device removed: {dev}")
 
 
@@ -241,7 +239,7 @@ async def deviceprobe(devicecommand, dev: ButtplugClient) -> None:
         printbpcoms(f"Device error x {e}")
 
 
-async def listenqueloop(q_listen: janus.AsyncQueue[int], bpclient: ButtplugClient) -> None:
+async def listenqueloop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -> None:
     """Loop that reads incoming OSC commands and sends them to the buttplug device"""
     printbpcoms("listening for commands from oscbridge")
     while True:
@@ -259,7 +257,7 @@ async def listenqueloop(q_listen: janus.AsyncQueue[int], bpclient: ButtplugClien
             print(f"listenqueloop error : {e}")
 
 
-async def listenque(q_listen: janus.AsyncQueue[int], bpclient: ButtplugClient) -> None:
+async def listenque(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -> None:
     """Wrapper for the queue reading loop"""
     try:
         await listenqueloop(q_listen, bpclient)
@@ -267,7 +265,7 @@ async def listenque(q_listen: janus.AsyncQueue[int], bpclient: ButtplugClient) -
         print(f"listenque error : {e}")
 
 
-async def clearqueue(q: janus.AsyncQueue[int])-> None:
+async def clearqueue(q: janus.AsyncQueue[Any])-> None:
     """sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually."""
     try:
         x = q.qsize()
@@ -278,7 +276,7 @@ async def clearqueue(q: janus.AsyncQueue[int])-> None:
         pass
 
 
-async def connectedclient(q_in_l: janus.AsyncQueue[int], mainconfig) -> ButtplugClient:
+async def connectedclient(q_in_l: janus.AsyncQueue[Any], mainconfig) -> ButtplugClient:
     """Returns a configured and connected buttplug client. Loops until a connection is made."""
     while True:
         try:
@@ -307,7 +305,7 @@ async def connectedclient(q_in_l: janus.AsyncQueue[int], mainconfig) -> Buttplug
             await asyncio.sleep(1)
 
 
-async def runclienttask(client, q_in_l: janus.AsyncQueue[int]) -> None:
+async def runclienttask(client, q_in_l: janus.AsyncQueue[Any]) -> None:
     """Starts the buttplug client scanning and reading the incoming commands from the queue inside a task."""
     try:
         await client.start_scanning()
@@ -329,7 +327,7 @@ async def runclienttask(client, q_in_l: janus.AsyncQueue[int]) -> None:
         printbpcoms(f"runclientlop running OSCtobutplug ex {e} {sys.exc_info()}")
 
 
-async def work(mainconfig : myclasses.MainData, q_in_l: janus.AsyncQueue[int]) -> None:
+async def work(mainconfig : myclasses.MainData.mainconfig, q_in_l: janus.AsyncQueue[Any]) -> None:
     """
     Creates tasks to read the incoming queue commands and sends them to the buttplug server
     The tasks will try to reconnect to the Buttplug server until a connection is made, and after it was dropped.
