@@ -96,7 +96,7 @@ async def device_added_task(dev: ButtplugClientDevice) -> None:
     # Print it to the console
     printbpcoms(devdata)
     # dump it to disk inside a devicename.json file
-    # await devicedump(dev, devdata)
+    await devicedump(dev, devdata)
 
 
 def device_added(emitter, dev: ButtplugClientDevice) -> None:
