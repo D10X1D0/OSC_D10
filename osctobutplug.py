@@ -28,6 +28,7 @@ async def devicedump(dev: ButtplugClientDevice, serializeddevice : dict()) -> No
     """Create a devicename.json file with all it's supported commands"""
     dname = dev.name
     try:
+        # Check if the file exists by trying to read it
         myclasses.tryreadjson(f"{dname}.json")
         printbpcoms(f"Dump file already exists, skipping creating it. {dname}")
     except FileNotFoundError:
@@ -115,23 +116,16 @@ async def vibratedevice(device: ButtplugClientDevice, devicecommand) -> None:
     name = devicecommand[0][0]
     motorlist = devicecommand[0][1][1]
     # make sure the value is inside the range 0->1
-    try:
-        value = max(min(float(devicecommand[1]), 1.0), 0.0)
-    except Exception as e:
-        printbpcoms(f"received a value outside of the valid float range (0.0-> 1.0) : {e}")
-        return
+    value = max(min(float(devicecommand[1]), 1.0), 0.0)
     command = dict()
     if isinstance(motorlist, str):
         # I'ts one number, indicating all motors should be set
         # I found that my device didn't vibrate all motors sending just a float after sending a tuple once,
         # so I'm setting all motors.
         nmotors = device.allowed_messages["VibrateCmd"].feature_count
-        try:
-            for i in range(nmotors):
-                command[i] = value
-        except Exception as e:
-            printbpcoms(f"Exception i_ {e}")
-        # printbpcoms(f"single comand : {command}")
+        for i in range(nmotors):
+            command[i] = value
+
     else:
         # It's a list of numbers, indicating all individual motors to be set
         try:
@@ -148,8 +142,6 @@ async def vibratedevice(device: ButtplugClientDevice, devicecommand) -> None:
     except ButtplugClientConnectorError as e:
         printbpcoms(f"ButtplugClientConnectorError, disconnected? {e}")
         raise ButtplugClientConnectorError("ButtplugClientConnectorError, disconnected?")
-    except Exception as e:
-        printbpcoms(f"device error, disconnected? {e}")
 
 
 async def rotatedevice(device: ButtplugClientDevice, devicecommand) -> None:
@@ -194,12 +186,8 @@ async def rotatedevice(device: ButtplugClientDevice, devicecommand) -> None:
             # printbpcoms(f"Setting more than one motor {command}")
         # printbpcoms(f"nmotors : {nmotors}")
 
-    try:
-        printbpcoms(f"Rotating : {name} : {command}")
-        await device.send_rotate_cmd(command)
-    except Exception as e:
-        printbpcoms(f"Error trying to rotate device : name {name} : command {command} : error {e}")
-        return
+    printbpcoms(f"Rotating : {name} : {command}")
+    await device.send_rotate_cmd(command)
 
 
 async def deviceprobe(devicecommand, dev: ButtplugClient) -> None:
@@ -235,8 +223,6 @@ async def deviceprobe(devicecommand, dev: ButtplugClient) -> None:
                     printbpcoms(f"no device found to match this name : {name} or command : {command}")
     except RuntimeError as e:
         printbpcoms(f"Device error {e}")
-    except Exception as e:
-        printbpcoms(f"Device error x {e}")
 
 
 async def listenqueloop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -> None:
@@ -253,27 +239,18 @@ async def listenqueloop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClien
                 raise ConnectionError
         except ConnectionError:
             break
-        except Exception as e :
-            print(f"listenqueloop error : {e}")
 
 
 async def listenque(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -> None:
     """Wrapper for the queue reading loop"""
-    try:
-        await listenqueloop(q_listen, bpclient)
-    except Exception as e:
-        print(f"listenque error : {e}")
+    await listenqueloop(q_listen, bpclient)
 
 
-async def clearqueue(q: janus.AsyncQueue[Any])-> None:
+async def clearqueue(q: janus.AsyncQueue[Any]) -> None:
     """sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually."""
-    try:
-        x = q.qsize()
-        for i in range(x):
-            await q.get()
-    except Exception as e:
-        printbpcoms(f"error clearing the command queue {e}")
-        pass
+    x = q.qsize()
+    for i in range(x):
+        await q.get()
 
 
 async def connectedclient(q_in_l: janus.AsyncQueue[Any], mainconfig) -> ButtplugClient:
@@ -322,9 +299,6 @@ async def runclienttask(client, q_in_l: janus.AsyncQueue[Any]) -> None:
 
     except RuntimeError as e:
         printbpcoms(f"runclientlopg OSCtobutplug re {e} {sys.exc_info()}")
-
-    except Exception as e:
-        printbpcoms(f"runclientlop running OSCtobutplug ex {e} {sys.exc_info()}")
 
 
 async def work(mainconfig : myclasses.MainData.mainconfig, q_in_l: janus.AsyncQueue[Any]) -> None:
