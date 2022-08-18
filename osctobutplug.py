@@ -128,11 +128,8 @@ async def vibratedevice(device: ButtplugClientDevice, devicecommand) -> None:
 
     else:
         # It's a list of numbers, indicating all individual motors to be set
-        try:
-            for i in motorlist:
-                command[i] = value
-        except Exception as e:
-            printbpcoms(f"Error in vibratedevice : {e}")
+        for i in motorlist:
+            command[i] = value
     try:
         # printbpcoms(f"Command : {command} : {(type(command))}")
         printbpcoms(f"Vibrating : {device.name} : motor/s : {motorlist} : speed : {value}")
@@ -190,7 +187,7 @@ async def rotatedevice(device: ButtplugClientDevice, devicecommand) -> None:
     await device.send_rotate_cmd(command)
 
 
-async def deviceprobe(devicecommand, dev: ButtplugClient) -> None:
+async def deviceprobe(devicecommand, bpclient: ButtplugClient) -> None:
     """Sends the incoming command to a buttplug device.
     It will ask the server to scan for devices if the one in the command is not connected.
     """
@@ -198,27 +195,27 @@ async def deviceprobe(devicecommand, dev: ButtplugClient) -> None:
     name = devicecommand[0][0]
     command = devicecommand[0][1][0]
     try:
-        if len(dev.devices) == 0:
+        if len(bpclient.devices) == 0:
             printbpcoms(f"Device not connected : {name}")
             # we tell the server to stop and scan again.
             # this will help not to do a full reset after a dropped bluetooth connection
-            await dev.stop_scanning()
-            await dev.start_scanning()
+            await bpclient.stop_scanning()
+            await bpclient.start_scanning()
             # test rotating device without connecting one to interface delete me after testing
             # if command == myclasses.BpDevCommand.Rotate.value:
             #    await rotatedevice(dev, item)
         else:
-            for key in dev.devices.keys():
-                if dev.devices[key].name == name:
+            for key in bpclient.devices.keys():
+                if bpclient.devices[key].name == name:
                     # print(f"device is connected , command {command}")
-                    device = dev.devices[key]
+                    device = bpclient.devices[key]
                     if command == myclasses.BpDevCommand.Vibrate.value:
                         await vibratedevice(device, devicecommand)
                     elif command == myclasses.BpDevCommand.Rotate.value:
                         await rotatedevice(device, devicecommand)
                     elif command == myclasses.BpDevCommand.Stop.value:
                         printbpcoms(f"Stoping : {name}")
-                        await dev.devices[key].send_stop_device_cmd()
+                        await bpclient.devices[key].send_stop_device_cmd()
                 else:
                     printbpcoms(f"no device found to match this name : {name} or command : {command}")
     except RuntimeError as e:
