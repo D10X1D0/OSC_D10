@@ -1,6 +1,7 @@
 import asyncio
 from typing import Any
 
+import buttplug.client
 import janus
 import sys
 
@@ -194,32 +195,29 @@ async def deviceprobe(devicecommand, bpclient: ButtplugClient) -> None:
     # look for a toy that matches the name passed, and if it is present execute the command
     name = devicecommand[0][0]
     command = devicecommand[0][1][0]
-    try:
-        if len(bpclient.devices) == 0:
-            printbpcoms(f"Device not connected : {name}")
-            # we tell the server to stop and scan again.
-            # this will help not to do a full reset after a dropped bluetooth connection
-            await bpclient.stop_scanning()
-            await bpclient.start_scanning()
-            # test rotating device without connecting one to interface delete me after testing
-            # if command == myclasses.BpDevCommand.Rotate.value:
-            #    await rotatedevice(dev, item)
-        else:
-            for key in bpclient.devices.keys():
-                if bpclient.devices[key].name == name:
-                    # print(f"device is connected , command {command}")
-                    device = bpclient.devices[key]
-                    if command == myclasses.BpDevCommand.Vibrate.value:
-                        await vibratedevice(device, devicecommand)
-                    elif command == myclasses.BpDevCommand.Rotate.value:
-                        await rotatedevice(device, devicecommand)
-                    elif command == myclasses.BpDevCommand.Stop.value:
-                        printbpcoms(f"Stoping : {name}")
-                        await bpclient.devices[key].send_stop_device_cmd()
-                else:
-                    printbpcoms(f"no device found to match this name : {name} or command : {command}")
-    except RuntimeError as e:
-        printbpcoms(f"Device error {e}")
+    if len(bpclient.devices) == 0:
+        printbpcoms(f"Device not connected : {name}")
+        # we tell the server to stop and scan again.
+        # this will help not to do a full reset after a dropped bluetooth connection
+        await bpclient.stop_scanning()
+        await bpclient.start_scanning()
+        # test rotating device without connecting one to interface delete me after testing
+        # if command == myclasses.BpDevCommand.Rotate.value:
+        #    await rotatedevice(dev, item)
+    else:
+        for key in bpclient.devices.keys():
+            if bpclient.devices[key].name == name:
+                # print(f"device is connected , command {command}")
+                device = bpclient.devices[key]
+                if command == myclasses.BpDevCommand.Vibrate.value:
+                    await vibratedevice(device, devicecommand)
+                elif command == myclasses.BpDevCommand.Rotate.value:
+                    await rotatedevice(device, devicecommand)
+                elif command == myclasses.BpDevCommand.Stop.value:
+                    printbpcoms(f"Stoping : {name}")
+                    await bpclient.devices[key].send_stop_device_cmd()
+            else:
+                printbpcoms(f"no device found to match this name : {name} or command : {command}")
 
 
 async def listenqueloop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -> None:
@@ -246,7 +244,7 @@ async def listenque(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -
 async def clearqueue(q: janus.AsyncQueue[Any]) -> None:
     """sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually."""
     x = q.qsize()
-    for i in range(x):
+    for _ in range(x):
         await q.get()
 
 
@@ -279,7 +277,7 @@ async def connectedclient(q_in_l: janus.AsyncQueue[Any], mainconfig) -> Buttplug
             await asyncio.sleep(1)
 
 
-async def runclienttask(client, q_in_l: janus.AsyncQueue[Any]) -> None:
+async def runclienttask(client: ButtplugClient, q_in_l: janus.AsyncQueue[Any]) -> None:
     """Starts the buttplug client scanning and reading the incoming commands from the queue inside a task."""
     try:
         await client.start_scanning()
@@ -293,9 +291,6 @@ async def runclienttask(client, q_in_l: janus.AsyncQueue[Any]) -> None:
     except ButtplugClientConnectorError as e:
         printbpcomswarning(e.message)
         return
-
-    except RuntimeError as e:
-        printbpcoms(f"runclientlopg OSCtobutplug re {e} {sys.exc_info()}")
 
 
 async def work(mainconfig : myclasses.MainData.mainconfig, q_in_l: janus.AsyncQueue[Any]) -> None:
