@@ -1,9 +1,7 @@
 import asyncio
 from typing import Any
 
-import buttplug.client
 import janus
-import sys
 
 from buttplug.client import ButtplugClient, ButtplugClientConnectorError, ButtplugClientDevice
 from buttplug.core import ButtplugDeviceError
@@ -164,7 +162,7 @@ async def rotatedevice(device: ButtplugClientDevice, devicecommand) -> None:
         else:
             # invalid direction to rotate
             printbpcoms("didn't find the direction to set the rotation: allcw or allccw ")
-            exit()
+            return
         command = tuple(command)
     elif isinstance(motorlist, list):
         # List of motors and directions
@@ -310,7 +308,7 @@ async def work(mainconfig : myclasses.MainData.mainconfig, q_in_l: janus.AsyncQu
             await runclienttask(client, q_in_l)
 
         except Exception as e:
-            print(f"Exception {e}")
+            printbpcomswarning(f"Exception {e}")
             break
     printbpcoms("OSCToButtplug shutting down.")
 

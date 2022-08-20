@@ -40,6 +40,7 @@ async def main():
     qstate: janus.Queue[Any] = janus.Queue()
     # Queue for comunicating back to osctobutplug
     qbp: janus.Queue[Any] = janus.Queue()
+    # get the current running loop to start all tasks inside the same loop.
     loop = asyncio.get_running_loop()
     #number of tasks that will be running
     ntasks = 0
@@ -55,6 +56,7 @@ async def main():
             ntasks += 1
             # OSCprocess async side
             if config.mainconfig["OSCprocess"]:
+                """Process task that will get OSC commands"""
                 taskoscp = asyncio.create_task(oscprocess.process(qproc.async_q, config, qstate.async_q), name="OSCprocess")
                 taskobjectlist.append(taskoscp)
                 ntasks += 1
