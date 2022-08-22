@@ -13,9 +13,12 @@ def sendosc(client: pythonosc.udp_client.SimpleUDPClient, parameter: str, value)
 
 def sendtoque(name, qosc: janus.SyncQueue[Any], value) -> None:
     """Sends / puts a list with name/value pairs for OSCtobuttplug to read"""
-    valuelist = (name, value)
-    qosc.put(valuelist)
-    qosc.join()
+    # Check that the queue is not full before sending new commands
+    if not qosc.full():
+        print("not full")
+        valuelist = (name, value)
+        qosc.put(valuelist)
+        qosc.join()
 
 
 def retransmit(cli, param, value) -> None:
@@ -72,8 +75,9 @@ def loadcommandlist(mainconfig: myclasses.MainData.mainconfig, oscserverconfig: 
 
 def queuesend(queue: janus.SyncQueue[Any], data) -> None:
     """Sends data to the passed queue"""
-    queue.put(data)
-    queue.join()
+    if not queue.full():
+        queue.put(data)
+        queue.join()
 
 
 def command_handleprocess(command, args, value) -> None:

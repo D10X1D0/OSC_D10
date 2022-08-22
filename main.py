@@ -36,10 +36,11 @@ async def main():
         exit()
     # A async/sync queque to send the commands from the sync osc server thread to async buttplug thread
     # Queue for oscprocess
-    qproc: janus.Queue[Any] = janus.Queue()
-    qstate: janus.Queue[Any] = janus.Queue()
-    # Queue for comunicating back to osctobutplug
-    qbp: janus.Queue[Any] = janus.Queue()
+    # limited to 20, to avoid it being leaky
+    qproc: janus.Queue[Any] = janus.Queue(20)
+    qstate: janus.Queue[Any] = janus.Queue(20)
+    # Queue for comunicating back to osctobutplug,
+    qbp: janus.Queue[Any] = janus.Queue(20)
     # get the current running loop to start all tasks inside the same loop.
     loop = asyncio.get_running_loop()
     #number of tasks that will be running
