@@ -15,7 +15,6 @@ def sendtoque(name, qosc: janus.SyncQueue[Any], value) -> None:
     """Sends / puts a list with name/value pairs for OSCtobuttplug to read"""
     # Check that the queue is not full before sending new commands
     if not qosc.full():
-        print("not full")
         valuelist = (name, value)
         qosc.put(valuelist)
         qosc.join()
@@ -46,13 +45,15 @@ def printwarningoscb(msg: str) -> None:
     """Helper function to print with colors"""
     printoscbridge(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
+def oscprintalldebug(address, *args):
+    printoscbridge(f"Adress {address} arguments : {args}")
 
 def loadcommandlist(mainconfig: myclasses.MainData.mainconfig, oscserverconfig: myclasses.OscServerData,
                     disp: dispatcher.Dispatcher, q: janus.SyncQueue[Any],
                     sendclient: pythonosc.udp_client.SimpleUDPClient, q_proc: janus.SyncQueue[Any]) -> bool:
     # read configuration and populate the dispatcher
     """Load all commands to listen from the incoming OSC data and load them into the OSCserver dispatcher.
-        Uses helper functions insce the commands are quite diferent to load into the dispatcher.
+        Uses helper functions since the commands are quite different to load into the dispatcher.
         Keeps a list of number of commands in the dispatcher since it does not have an easy len() method.
     """
     ncomands = 0
@@ -65,6 +66,9 @@ def loadcommandlist(mainconfig: myclasses.MainData.mainconfig, oscserverconfig: 
     if mainconfig["OSCprocess"]:
         processmaping = oscserverconfig.proces
         ncomands = ncomands + populateprocessmaping(disp, processmaping, sendclient, q_proc)
+    if mainconfig["OSCBridgeDEBUG"]:
+        disp.set_default_handler(oscprintalldebug)
+        ncomands = ncomands +1
     if ncomands == 0:
         printwarningoscb("No commands for the OSCbridge to listen for.")
         return False

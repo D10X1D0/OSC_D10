@@ -43,7 +43,7 @@ async def main():
     qbp: janus.Queue[Any] = janus.Queue(20)
     # get the current running loop to start all tasks inside the same loop.
     loop = asyncio.get_running_loop()
-    #number of tasks that will be running
+    # number of tasks that will be running
     ntasks = 0
     taskobjectlist = list()
     try:

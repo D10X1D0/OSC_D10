@@ -23,7 +23,7 @@ def printbpcomswarning(text) -> None:
     print(msg)
 
 
-async def devicedump(dev: ButtplugClientDevice, serializeddevice : dict()) -> None:
+def devicedump(dev: ButtplugClientDevice, serializeddevice: dict()) -> None:
     """Create a devicename.json file with all it's supported commands"""
     dname = dev.name
     try:
@@ -96,7 +96,7 @@ async def device_added_task(dev: ButtplugClientDevice) -> None:
     # Print it to the console
     printbpcoms(devdata)
     # dump it to disk inside a devicename.json file
-    await devicedump(dev, devdata)
+    devicedump(dev, devdata)
 
 
 def device_added(emitter, dev: ButtplugClientDevice) -> None:
@@ -149,7 +149,7 @@ async def rotatedevice(device: ButtplugClientDevice, devicecommand) -> None:
         value = max(min(float(devicecommand[1]), 1.0), 0.0)
         command = dict()
     except Exception as e:
-        print("Could not read the command to rotatedevice : {e}")
+        print(f"Could not read the command to rotatedevice : {e}")
         return
     if isinstance(motorlist, str):
         # All motors to turn
@@ -234,11 +234,6 @@ async def listenqueloop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClien
             break
 
 
-async def listenque(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -> None:
-    """Wrapper for the queue reading loop"""
-    await listenqueloop(q_listen, bpclient)
-
-
 async def clearqueue(q: janus.AsyncQueue[Any]) -> None:
     """sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually."""
     x = q.qsize()
@@ -280,7 +275,7 @@ async def runclienttask(client: ButtplugClient, q_in_l: janus.AsyncQueue[Any]) -
     try:
         await client.start_scanning()
         """Start the queue listening"""
-        task2 = asyncio.create_task(listenque(q_in_l, client), name="oscbplistenque")
+        task2 = asyncio.create_task(listenqueloop(q_in_l, client), name="oscbplistenque")
         await task2
         """When the task stops we stop the server scanning for devices and close the connection"""
         printbpcoms("Exiting client task")
@@ -291,7 +286,7 @@ async def runclienttask(client: ButtplugClient, q_in_l: janus.AsyncQueue[Any]) -
         return
 
 
-async def work(mainconfig : myclasses.MainData.mainconfig, q_in_l: janus.AsyncQueue[Any]) -> None:
+async def work(mainconfig: myclasses.MainData.mainconfig, q_in_l: janus.AsyncQueue[Any]) -> None:
     """
     Creates tasks to read the incoming queue commands and sends them to the buttplug server
     The tasks will try to reconnect to the Buttplug server until a connection is made, and after it was dropped.
@@ -311,4 +306,3 @@ async def work(mainconfig : myclasses.MainData.mainconfig, q_in_l: janus.AsyncQu
             printbpcomswarning(f"Exception {e}")
             break
     printbpcoms("OSCToButtplug shutting down.")
-

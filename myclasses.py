@@ -6,6 +6,7 @@ from printcolors import bcolors
 
 maindefault = {
     "OSCBridge": False,
+    "OSCBridgeDEBUG": False,
     "OSCBListenIP": "127.0.0.1", "OSCBListenPort": 9001,
     "OSCPass": False,
     "OSCSendIP": "127.0.0.1", "OSCSendPort": 9000,
