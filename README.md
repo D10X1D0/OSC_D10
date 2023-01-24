@@ -2,6 +2,8 @@
 Python OSC bridge to other apps and send OSC messages back. 
 Curretly able to talk with [Buttplug.io](https://buttplug.io/) , tested with [Interface](https://intiface.com/)
 If no configuration files are found, new .json configuration files with examples will be created.
+Should be run as a python script, tested in python 3.11 using pycharm, starting at main.py, additional python libraries requirements are listed requirements.txt.
+I used console color codes to print easyer to identify messages, if you're using an interpreter won't support this you'll see some weird characters being printed.
 
 ## OSCBridge:
 OSC server that can listen and communicate with other apps.
