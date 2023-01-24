@@ -5,32 +5,14 @@ from enum import Enum
 from printcolors import bcolors
 
 maindefault = {
-    "OSCBridge": False,
+    "OSCBridge": True,
     "OSCBridgeDEBUG": False,
     "OSCBListenIP": "127.0.0.1", "OSCBListenPort": 9001,
     "OSCPass": False,
     "OSCSendIP": "127.0.0.1", "OSCSendPort": 9000,
-    "OSCtoButtplug": False,
-    "InterfaceWS": "127.0.0.1:12345",
-    "OSCprocess": False
+    "OSCtoButtplug": True
 }
-# default contents of parameterMaping.json
-# OSCparameter, "device name", [command]
-# OSCparameter, "device name", [command, motor index]
-# OSCparameter, "device name", [command, rotation direction]  "allcw" clockwise "allccw" counterclockwise
-# OSCparameter, "device name", [command, [rotor index, [rotation direction]]  "true" clockwise, "false" counterclockwise
-parameterMapingdefault = [
-    "/avatar/parameters/pContact1", "Lovense Edge", ["Vibrate", "all"],
-    "/avatar/parameters/pContact2", "Lovense Edge", ["Vibrate", [0]],
-    "/avatar/parameters/stop0", "Lovense Edge", ["Stop"],
-    "/avatar/parameters/rotatea", "fake rotating device", ["Rotate", "allcw"],
-    "/avatar/parameters/rotateb", "fake rotating device", ["Rotate", "allccw"],
-    "/avatar/parameters/rotatec", "fake rotating device", ["Rotate", [0, True]],
-    "/avatar/parameters/rotated", "fake rotating device", ["Rotate", [[2, False], [7, True]]],
-    "/avatar/parameters/Mouth", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", "all"],
-    "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [0]],
-    "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [1]]
-]
+
 # default contents of passMaping.json
 # OSC origin adress, OSC destination adress
 passMapingdefault = [
@@ -57,7 +39,7 @@ def tryreadjson(filename):
         return data
 
 
-def createdefaultfile(filename, data):
+def create_default_file(filename, data):
     printwarning(f"Creating default config file:{filename}")
     try:
         jsondump = json.dumps(data, indent=4)
@@ -74,7 +56,7 @@ def readjsonfile(filename: str, defaultvalue):
         return data
     except OSError as e:
         printwarning("Could not load " + filename)
-        createdefaultfile(filename, defaultvalue)
+        create_default_file(filename, defaultvalue)
         data = tryreadjson(filename)
         return data
     except Exception as e:
@@ -92,7 +74,6 @@ class MainData:
 class OscServerData:
     retransmit = readjsonfile("retransmitMaping.json", passMapingdefault)
     proces = readjsonfile("procesMaping.json", processMapingdefault)
-    buttplug = readjsonfile("parameterMaping.json", parameterMapingdefault)
 
 
 # enum of valid commands for devices in osctobutplug

@@ -1,27 +1,27 @@
 import asyncio
-from typing import Any
-import janus
-import myclasses
-import oscprocess
-import oscserver
-import osctobutplug
+
+import osc_d10
+from osc_d10.osc import osc_server_manager
+from osc_d10.osc_buttplug import osc_buttplug
+
 from printcolors import bcolors
+import myclasses
 
 
-def printmain(msg):
+def print_main(msg):
     print(f"{bcolors.HEADER} Main: {bcolors.ENDC} {msg} ")
 
 
-def printmainwarning(msg):
+def print_main_warning(msg):
     print(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
 async def cancel_me(ntasks):
     if ntasks != 0:
-        printmain(f'Running active task/s : {ntasks}')
+        print_main(f'Running active task/s : {ntasks}')
     else:
-        printmain(f'No tasks to run, shutting down')
-        exit()
+        print_main(f'No tasks to run, shutting down')
+        return()
     try:
         await asyncio.sleep(3600)
     except asyncio.CancelledError:
@@ -32,15 +32,8 @@ async def main():
     # reading the main configuration file
     config = myclasses.MainData
     if not config.mainconfig:
-        printmainwarning("Mainconfig.json has errors or can't be accessed, shutting down.")
-        exit()
-    # A async/sync queque to send the commands from the sync osc server thread to async buttplug thread
-    # Queue for oscprocess
-    # limited to 20, to avoid it being leaky
-    qproc: janus.Queue[Any] = janus.Queue(20)
-    qstate: janus.Queue[Any] = janus.Queue(20)
-    # Queue for comunicating back to osctobutplug,
-    qbp: janus.Queue[Any] = janus.Queue(20)
+        print_main_warning("Mainconfig.json has errors or can't be accessed, shutting down.")
+        return
     # get the current running loop to start all tasks inside the same loop.
     loop = asyncio.get_running_loop()
     # number of tasks that will be running
@@ -53,31 +46,34 @@ async def main():
                 the osc server is not async, so we run it inside a separate thread/executor.
                 and get info back with a sync/async janus.Queue 
             """
-            bridge = loop.run_in_executor(None, oscserver.oscbridge, config, qstate.sync_q, qbp.sync_q, qproc.sync_q)
+            osc_manager = osc_server_manager.OSCServerManager(config.mainconfig)
+            osc_bridge = loop.run_in_executor(None, osc_d10.osc.osc_server.run_osc_bridge, osc_manager)
             ntasks += 1
             # OSCprocess async side
-            if config.mainconfig["OSCprocess"]:
-                """Process task that will get OSC commands"""
-                taskoscp = asyncio.create_task(oscprocess.process(qproc.async_q, config, qstate.async_q), name="OSCprocess")
-                taskobjectlist.append(taskoscp)
-                ntasks += 1
+            #  if config.mainconfig["OSCprocess"]:
+            #     """Process task that will get OSC commands"""
+            #     task_osc_process = asyncio.create_task(oscprocess.process(qproc.async_q, config, qstate.async_q),
+            #     name="OSCprocess")
+            #     taskobjectlist.append(task_osc_process)
+            #     ntasks += 1
         else:
-            printmainwarning(
+            print_main_warning(
                 "Skipping OSCBridge, and OSCToButtplug, OSCBridge = true to enable it in Mainconfig.json")
         if config.mainconfig["OSCtoButtplug"]:
             # osctobutplug will be the buttplug client/connector to talk to Interface and control devices.
             # loop.create_task(osctobutplug.butplugcoms, config, qBP.async_q, qstate.async_q)
-            taskbtplug = asyncio.create_task(osctobutplug.work(config, qbp.async_q), name="OSCtoButtplug")
-            taskobjectlist.append(taskbtplug)
+            task_btplug = asyncio.create_task(osc_d10.osc_buttplug.osc_buttplug.run_osc_buttplug(osc_manager),
+                                              name="OSCtoButtplug")
+            taskobjectlist.append(task_btplug)
             ntasks += 1
             # asyncio.create_task(osctobutplug.work(config, qBP.async_q, loop))
             # osctobutplug.butplugcoms(config, qBP.async_q, qstate.async_q)
         else:
-            printmainwarning(
+            print_main_warning(
                   "Skipping OSCToButtplug, OSCtoButtplug = true to enable it in Mainconfig.json")
         # dummy task to keep the main loop running
-        taskdummy = asyncio.create_task(cancel_me(ntasks))
-        taskobjectlist.append(taskdummy)
+        task_dummy = asyncio.create_task(cancel_me(ntasks))
+        taskobjectlist.append(task_dummy)
         # check the states of the tasks as they finish
         try:
             done, pending = await asyncio.wait(
@@ -107,5 +103,5 @@ if __name__ == '__main__':
         print(f"{bcolors.WARNING} Program closed....{ bcolors.ENDC}")
     except RuntimeError as e:
         print(f"{bcolors.WARNING} All shut down, error/s happened {bcolors.ENDC} {e}")
-    except Exception:
-        print(f"{bcolors.WARNING} Program closed....{bcolors.ENDC}")
+    except Exception as e:
+        print(f"{bcolors.WARNING} Program closed....{e} {bcolors.ENDC}")
