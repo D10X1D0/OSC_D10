@@ -1,12 +1,11 @@
 import janus
 
-import myclasses
 import osc_d10.osc.osc_server
 
 from osc_d10.osc.osc_server_manager import OSCServerManager
-from printcolors import bcolors
-
-from osc_d10.osc_buttplug.osc_buttplug_manager import OSCButtplugManager
+from osc_d10.osc_buttplug.osc_buttplug_manager import OSCButtplugManager, BpDevCommand
+from osc_d10.tools.console_colors import bcolors
+from osc_d10.tools.io_files import read_json_file
 
 
 def print_config(text):
@@ -18,7 +17,7 @@ def run_initial_setup(osc_manager: OSCServerManager, bp_manager: OSCButtplugMana
 
 
 def read_mappings() -> list:
-    # default contents of parameterMaping.json
+    # default contents to help a new install
     # OSCparameter, "device name", [command]
     # OSCparameter, "device name", [command, motor index]
     # OSCparameter, "device name", [command, rotation direction]  "allcw" clockwise "allccw" counterclockwise
@@ -36,53 +35,52 @@ def read_mappings() -> list:
         "/avatar/parameters/Test2", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [0]],
         "/avatar/parameters/Test3", "XBox (XInput) Compatible Gamepad 1", ["Vibrate", [1]]
     ]
-    data = myclasses.readjsonfile("OscToButtplugConfiguration.json", parameter_default)
+    data = read_json_file("OscToButtplugConfiguration.json", parameter_default)
     return data
 
 
-def command_handler_buttplug(osc_adress, args, osc_value) -> None:
+def command_handler_buttplug(osc_address, args, osc_value) -> None:
     """Command handler for OSCtobuttplug, sends the OSC data using a queue"""
     osc_d10.osc.osc_server.send_to_que(args[0][0], args[0][1], osc_value)
-    # print(f"command_handler_buttplug {osc_adress} {args} {osc_value}")
 
 
-def map_dispatcher_buttplug(osc_manager: OSCServerManager, queque: janus.SyncQueue) -> None:
+def map_dispatcher_buttplug(osc_manager: OSCServerManager, queue: janus.SyncQueue) -> None:
     """Reads OSCtoButtplug commands configuration files and populates the server Dispatcher"""
-    comands = read_mappings()
+    commands = read_mappings()
     # the mapping is stored in sets of 3
-    if not comands:
+    if not commands:
         print_config("Could not read any commands to dispatch for butplug")
         return
 
-    if not len(comands) % 3 == 0:
+    if not len(commands) % 3 == 0:
         print_config(bcolors.FAIL +
                      "The number of entry's in OSCtoButtplug -> parameterMaping.json is not multiple of 3"
                      + bcolors.ENDC)
         return
 
-    print_config(f"Setting nº of mappings for OSCtoButtplug: {len(comands) // 3}")
-    for i in range(len(comands) // 3):
+    print_config(f"Setting nº of mappings for OSCtoButtplug: {len(commands) // 3}")
+    for i in range(len(commands) // 3):
         if i != 0:
             a = i * 3
         else:
             a = i
         try:
-            oscaddr = comands[a]
-            devname = comands[a + 1]
-            command = comands[a + 2]
-            commandname = comands[a + 2][0]
-            if len(comands[a + 2]) == 2:
-                commanddata = comands[a + 2][1]
+            osc_addr = commands[a]
+            dev_name = commands[a + 1]
+            command = commands[a + 2]
+            command_name = commands[a + 2][0]
+            if len(commands[a + 2]) == 2:
+                command_data = commands[a + 2][1]
             else:
-                commanddata = ''
+                command_data = ''
             # replacing the command name str(), for it's assigned value, if its
-            command[0] = myclasses.BpDevCommand[commandname].value
+            command[0] = BpDevCommand[command_name].value
             # registering command in internal valid list
-            osc_manager.map_osc(oscaddr, command_handler_buttplug, (devname, command), queque)
-            print_config(f"{oscaddr}_ mapped to_ {devname} {commandname} {commanddata}")
+            osc_manager.map_osc(osc_addr, command_handler_buttplug, (dev_name, command), queue)
+            print_config(f"{osc_addr} _ mapped to_ {dev_name} {command_name} {command_data}")
         except ValueError:
             print_config(f" Invalid command for osctobutplug in configuration, skipping it. "
-                             f"{command} {commandname}")
+                             f"{command} {command_name}")
         except Exception as e:
             print_config(f" This command could not be mapped to OSCtoButtplug : {command} : error {e}")
 

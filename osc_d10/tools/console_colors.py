@@ -1,3 +1,5 @@
+
+# Codes for coloring the command line.
 class bcolors:
     HEADER = '\033[95m'
     HEADER2 = "\033[35m"

@@ -2,10 +2,10 @@ from typing import Any
 
 import janus
 import pythonosc.udp_client
-from pythonosc import (osc_server, udp_client, dispatcher)
+from pythonosc import (osc_server, udp_client)
 
 
-from printcolors import bcolors
+from osc_d10.tools.console_colors import bcolors
 from osc_d10.osc.osc_server_manager import OSCServerManager
 
 
@@ -18,8 +18,8 @@ def send_to_que(name, qosc: janus.SyncQueue[Any], value) -> None:
     """Sends / puts a list with name/value pairs for OSCtobuttplug to read"""
     # Check that the queue is not full before sending new commands
     if not qosc.full():
-        valuelist = (name, value)
-        qosc.put(valuelist)
+        values = (name, value)
+        qosc.put(values)
         qosc.join()
 
 
@@ -55,7 +55,7 @@ def queue_send(queue: janus.SyncQueue[Any], data) -> None:
         queue.join()
 
 
-def command_handleprocess(command, args, value) -> None:
+def command_handle_process(command, args, value) -> None:
     """Wrapper function to unpack incoming args and values from the dispatcher"""
     queue_send(args[0], [value, args[1]])
 

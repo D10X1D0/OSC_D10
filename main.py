@@ -1,11 +1,11 @@
 import asyncio
 
+import myclasses
 import osc_d10
 from osc_d10.osc import osc_server_manager
 from osc_d10.osc_buttplug import osc_buttplug
 
-from printcolors import bcolors
-import myclasses
+from osc_d10.tools.console_colors import bcolors
 
 
 def print_main(msg):
@@ -16,9 +16,9 @@ def print_main_warning(msg):
     print(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
-async def cancel_me(ntasks):
-    if ntasks != 0:
-        print_main(f'Running active task/s : {ntasks}')
+async def cancel_me(n_tasks):
+    if n_tasks != 0:
+        print_main(f'Running active task/s : {n_tasks}')
     else:
         print_main(f'No tasks to run, shutting down')
         return()
@@ -30,17 +30,17 @@ async def cancel_me(ntasks):
 
 async def main():
     # reading the main configuration file
-    config = myclasses.MainData
+    config = myclasses.MainData()
     if not config.mainconfig:
         print_main_warning("Mainconfig.json has errors or can't be accessed, shutting down.")
         return
     # get the current running loop to start all tasks inside the same loop.
     loop = asyncio.get_running_loop()
     # number of tasks that will be running
-    ntasks = 0
-    taskobjectlist = list()
+    n_tasks = 0
+    task_objects = list()
     try:
-        if config.mainconfig["OSCBridge"] or config.mainconfig["OSCPass"] or config.mainconfig["OSCprocess"]:
+        if config.mainconfig["OSCBridge"]:
             """ 
                 bridge will be the OSC server listening for commands
                 the osc server is not async, so we run it inside a separate thread/executor.
@@ -48,7 +48,7 @@ async def main():
             """
             osc_manager = osc_server_manager.OSCServerManager(config.mainconfig)
             osc_bridge = loop.run_in_executor(None, osc_d10.osc.osc_server.run_osc_bridge, osc_manager)
-            ntasks += 1
+            n_tasks += 1
             # OSCprocess async side
             #  if config.mainconfig["OSCprocess"]:
             #     """Process task that will get OSC commands"""
@@ -60,24 +60,22 @@ async def main():
             print_main_warning(
                 "Skipping OSCBridge, and OSCToButtplug, OSCBridge = true to enable it in Mainconfig.json")
         if config.mainconfig["OSCtoButtplug"]:
-            # osctobutplug will be the buttplug client/connector to talk to Interface and control devices.
-            # loop.create_task(osctobutplug.butplugcoms, config, qBP.async_q, qstate.async_q)
+            # osctobutplug will be the buttplug client/connector to talk to Intiface and control devices.
             task_btplug = asyncio.create_task(osc_d10.osc_buttplug.osc_buttplug.run_osc_buttplug(osc_manager),
                                               name="OSCtoButtplug")
-            taskobjectlist.append(task_btplug)
-            ntasks += 1
-            # asyncio.create_task(osctobutplug.work(config, qBP.async_q, loop))
-            # osctobutplug.butplugcoms(config, qBP.async_q, qstate.async_q)
+            task_objects.append(task_btplug)
+            n_tasks += 1
+
         else:
             print_main_warning(
                   "Skipping OSCToButtplug, OSCtoButtplug = true to enable it in Mainconfig.json")
         # dummy task to keep the main loop running
-        task_dummy = asyncio.create_task(cancel_me(ntasks))
-        taskobjectlist.append(task_dummy)
+        task_dummy = asyncio.create_task(cancel_me(n_tasks))
+        task_objects.append(task_dummy)
         # check the states of the tasks as they finish
         try:
             done, pending = await asyncio.wait(
-                taskobjectlist,
+                task_objects,
                 return_when=asyncio.ALL_COMPLETED
             )
             for task in done:
@@ -89,8 +87,8 @@ async def main():
                 try:
                     result = task.result()
                     print(f"{name} returned {result}")
-                except ValueError as e:
-                    print(f"valueError : {e}")
+                except ValueError as ve:
+                    print(f"valueError : {ve}")
         except Exception as e:
             print(f"Outer Exception {e}")
     except Exception as exc:

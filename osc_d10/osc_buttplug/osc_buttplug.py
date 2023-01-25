@@ -7,14 +7,14 @@ from buttplug.client import ButtplugClient, ButtplugClientConnectorError, Buttpl
 from buttplug.core import ButtplugDeviceError
 
 import osc_d10.osc_buttplug.osc_buttplug_manager
-from D10ButtplugClientWebsocketConnector import D10ButtplugClientWebsocketConnector
+from osc_d10.osc_buttplug.D10ButtplugClientWebsocketConnector import D10ButtplugClientWebsocketConnector
 from osc_d10.osc_buttplug.osc_buttplug_manager import OSCButtplugManager
 
-import myclasses
 from osc_d10.osc.osc_server_manager import OSCServerManager
 from osc_d10.osc_buttplug import osc_buttplug_setup
 
-from printcolors import bcolors
+from osc_d10.tools.console_colors import bcolors
+from osc_d10.tools.io_files import create_default_file, try_read_json
 
 
 def print_buttplug(text) -> None:
@@ -31,29 +31,29 @@ def print_buttplug_warning(text) -> None:
 
 def device_dump(dev: ButtplugClientDevice, serializeddevice: dict()) -> None:
     """Create a devicename.json file with all it's supported commands"""
-    dname = dev.name
+    d_name = dev.name
     try:
         # Check if the file exists by trying to read it
-        myclasses.tryreadjson(f"{dname}.json")
-        print_buttplug(f"Dump file already exists, skipping creating it. {dname}")
+        try_read_json(f"{d_name}.json")
+        print_buttplug(f"Dump file already exists, skipping creating it. {d_name}")
     except FileNotFoundError:
-        print_buttplug(f"Dump file does not exist, creating it. {dname}")
-        myclasses.create_default_file(f"{dname}.json", serializeddevice)
+        print_buttplug(f"Dump file does not exist, creating it. {d_name}")
+        create_default_file(f"{d_name}.json", serializeddevice)
     except Exception as e:
-        print_buttplug(f"Error creating a dump file for {dname} : {e}")
+        print_buttplug(f"Error creating a dump file for {d_name} : {e}")
 
 
 async def serialize_device(dev: ButtplugClientDevice) -> dict():
     """Read and format the buttplug device information into a dict() and print it to a .json file"""
     print_buttplug(f"Creating dump file for {dev.name}")
     # dictionary with devicename, osctobuttplugcomamnds:, buttplug raw commands
-    serializabledata = dict()
+    serializable_data = dict()
     # dictionary that will contain the osctobuttplug supported commands
     clist = list()
     # dictionary that will contain all the device's buttplug supported commands.
     clistraw = list()
     # Start the data dictionary with the device name.
-    serializabledata['devicename'] = str(dev.name)
+    serializable_data['devicename'] = str(dev.name)
     for msg in dev.allowed_messages:
         """Check if it has .featurecount, indicates number of motors/vibrators."""
         fcount = None
@@ -68,9 +68,9 @@ async def serialize_device(dev: ButtplugClientDevice) -> dict():
         """Check if it's implemented in OSCtobuttplug and translate its name to the internal one."""
         try:
             # buttplug command name's value from (BpDevCommandInterface(Enum))
-            bpnamevalue = myclasses.BpDevCommandInterface[str(msg)].value
+            bpnamevalue = osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommandInterface[str(msg)].value
             # osctobuttplug command name's translated (BpDevCommand(Enum))
-            octobpname = myclasses.BpDevCommand(bpnamevalue).name
+            octobpname = osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand(bpnamevalue).name
             """It's implemented in OSCtobuttlug and it's name could be translated"""
             if fcount is None:
                 """no featurecount for the current command, just add the command name to the list/dict"""
@@ -89,20 +89,20 @@ async def serialize_device(dev: ButtplugClientDevice) -> dict():
                 # printbpcoms(f"appending {msg} with fcount = {fcount} to bprraw")
                 clistraw.append({str(msg): fcount})
 
-    serializabledata['osctobuttplugcommands'] = clist
-    serializabledata['buttplugrawcommands'] = clistraw
-    return serializabledata
+    serializable_data['osctobuttplugcommands'] = clist
+    serializable_data['buttplugrawcommands'] = clistraw
+    return serializable_data
 
 
 async def device_added_task(dev: ButtplugClientDevice) -> None:
     """Generates a dict() with the device name and propertys and creates a devicename.json file on disk"""
     print_buttplug("Device Added: {}".format(dev.name))
     # get the serialized device data
-    devdata = await serialize_device(dev)
+    dev_data = await serialize_device(dev)
     # Print it to the console
-    print_buttplug(devdata)
+    print_buttplug(dev_data)
     # dump it to disk inside a devicename.json file
-    device_dump(dev, devdata)
+    device_dump(dev, dev_data)
 
 
 def device_added(emitter, dev: ButtplugClientDevice) -> None:
@@ -119,11 +119,11 @@ async def vibrate_device(device: ButtplugClientDevice, devicecommand) -> None:
     """Ask the buttplug server to vibrate the device motor/s, rounds the speed to be inside 0->1 range"""
     # await device.send_vibrate_cmd({m: value})
     name = devicecommand[0][0]
-    motorlist = devicecommand[0][1][1]
+    motors = devicecommand[0][1][1]
     # make sure the value is inside the range 0->1
     value = max(min(float(devicecommand[1]), 1.0), 0.0)
     command = dict()
-    if isinstance(motorlist, str):
+    if isinstance(motors, str):
         # I'ts one number, indicating all motors should be set
         # I found that my device didn't vibrate all motors sending just a float after sending a tuple once,
         # so I'm setting all motors.
@@ -133,11 +133,11 @@ async def vibrate_device(device: ButtplugClientDevice, devicecommand) -> None:
 
     else:
         # It's a list of numbers, indicating all individual motors to be set
-        for i in motorlist:
+        for i in motors:
             command[i] = value
     try:
         # printbpcoms(f"Command : {command} : {(type(command))}")
-        print_buttplug(f"Vibrating : {device.name} : motor/s : {motorlist} : speed : {value}")
+        print_buttplug(f"Vibrating : {device.name} : motor/s : {motors} : speed : {value}")
         await device.send_vibrate_cmd(command)
     except ButtplugDeviceError as e:
         print_buttplug(f'configured motor outside of the device range. {e}')
@@ -172,7 +172,7 @@ async def rotate_device(device: ButtplugClientDevice, device_command) -> None:
         command = tuple(command)
     elif isinstance(motorlist, list):
         # List of motors and directions
-        nmotors = len(motorlist)
+        n_motors = len(motorlist)
 
         if isinstance(motorlist[0], int):
             # just one motor to set : a Tuple of [float, bool]
@@ -182,7 +182,7 @@ async def rotate_device(device: ButtplugClientDevice, device_command) -> None:
         elif isinstance(motorlist[0], list):
             # more than one motor to set : a dict of int to Tuple[float, bool]
             command = dict()
-            for i in range(nmotors):
+            for i in range(n_motors):
                 motorindex = motorlist[i]
                 command[motorindex[0]] = value, motorindex[1]
             # printbpcoms(f"Setting more than one motor {command}")
@@ -214,11 +214,11 @@ async def device_probe(device_command, bp_client: ButtplugClient) -> None:
             if bp_client.devices[key].name == name:
                 # print(f"device is connected , command {command}")
                 device = bp_client.devices[key]
-                if command == myclasses.BpDevCommand.Vibrate.value:
+                if command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Vibrate.value:
                     await vibrate_device(device, device_command)
-                elif command == myclasses.BpDevCommand.Rotate.value:
+                elif command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Rotate.value:
                     await rotate_device(device, device_command)
-                elif command == myclasses.BpDevCommand.Stop.value:
+                elif command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Stop.value:
                     print_buttplug(f"Stoping : {name}")
                     await bp_client.devices[key].send_stop_device_cmd()
             else:
@@ -301,11 +301,15 @@ async def run_osc_buttplug(osc_manager: OSCServerManager) -> None:
     # this should prevent relaunching the full script if the ws connection is dropped
     # Queque with two sides, Async and Sync, used to comunicate with the osc server
     que_buttplug: janus.Queue[Any] = janus.Queue(20)
-    # manager object that will keep track of the configuration and some usefull objects
-    bp_manager = osc_d10.osc_buttplug.osc_buttplug_manager.OSCButtplugManager(que_buttplug)
-    # pass the syncronous version for the dipatcher, runs blocking code.
-    osc_buttplug_setup.run_initial_setup(osc_manager, bp_manager)
-
+    try:
+        # manager object that will keep track of the configuration and some usefull objects
+        bp_manager = osc_d10.osc_buttplug.osc_buttplug_manager.OSCButtplugManager(que_buttplug)
+        # pass the syncronous version for the dipatcher, runs blocking code.
+        osc_buttplug_setup.run_initial_setup(osc_manager, bp_manager)
+    except Exception as e:
+        print_buttplug_warning(f"run_osc_buttplug exception  {e}")
+        print_buttplug_warning("OSC To Buttplug done, could not start.")
+        return
     while True:
         try:
             # instantiate a new client object from a helper function
