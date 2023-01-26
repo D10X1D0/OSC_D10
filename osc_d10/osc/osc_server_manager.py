@@ -1,12 +1,10 @@
-from dataclasses import dataclass
-
 from pythonosc import udp_client
 
 import myclasses
 
 # custom dispatcher with a bug patched
 from osc_d10.osc import osc_dispatcher_d10
-from osc_d10.tools.io_files import read_json_file
+
 
 class OSCServerManager:
     """Class to store and share server data and functions"""

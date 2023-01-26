@@ -24,7 +24,7 @@ def try_read_json(filename):
 
 
 def read_json_file(filename: str, default_value):
-    # read a .json file, if it fails creates a default one.
+    """ Reads a .json file, if it fails creates a default one."""
     try:
         data = try_read_json(filename)
         return data

@@ -29,11 +29,6 @@ def retransmit(cli, param, value) -> None:
     print_osc_bridge(f"retransmitting : {param} {value}")
 
 
-def command_handler_pass(command, args, value):
-    """Command handler for OSCProcess, re-sends data through OSC """
-    retransmit(args[0], args[1], value)
-
-
 def print_osc_bridge(msg) -> None:
     """Helper function to print with colors"""
     print(f"{bcolors.HEADER} OSCB : {bcolors.ENDC} {msg}")
@@ -53,11 +48,6 @@ def queue_send(queue: janus.SyncQueue[Any], data) -> None:
     if not queue.full():
         queue.put(data)
         queue.join()
-
-
-def command_handle_process(command, args, value) -> None:
-    """Wrapper function to unpack incoming args and values from the dispatcher"""
-    queue_send(args[0], [value, args[1]])
 
 
 def run_osc_bridge(manager: OSCServerManager) -> None:

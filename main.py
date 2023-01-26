@@ -3,32 +3,33 @@ import asyncio
 import myclasses
 import osc_d10
 from osc_d10.osc import osc_server_manager
+from osc_d10.osc.osc_process import run_process
 from osc_d10.osc_buttplug import osc_buttplug
 
 from osc_d10.tools.console_colors import bcolors
 
 
-def print_main(msg):
+def print_main(msg) -> None:
     print(f"{bcolors.HEADER} Main: {bcolors.ENDC} {msg} ")
 
 
-def print_main_warning(msg):
+def print_main_warning(msg) -> None:
     print(f"{bcolors.WARNING} {msg} {bcolors.ENDC}")
 
 
-async def cancel_me(n_tasks):
+async def cancel_me(n_tasks) -> None:
     if n_tasks != 0:
         print_main(f'Running active task/s : {n_tasks}')
     else:
         print_main(f'No tasks to run, shutting down')
-        return()
+        return
     try:
         await asyncio.sleep(3600)
     except asyncio.CancelledError:
         pass
 
 
-async def main():
+async def main() -> None:
     # reading the main configuration file
     config = myclasses.MainData()
     if not config.mainconfig:
@@ -50,12 +51,12 @@ async def main():
             osc_bridge = loop.run_in_executor(None, osc_d10.osc.osc_server.run_osc_bridge, osc_manager)
             n_tasks += 1
             # OSCprocess async side
-            #  if config.mainconfig["OSCprocess"]:
-            #     """Process task that will get OSC commands"""
-            #     task_osc_process = asyncio.create_task(oscprocess.process(qproc.async_q, config, qstate.async_q),
-            #     name="OSCprocess")
-            #     taskobjectlist.append(task_osc_process)
-            #     ntasks += 1
+            if config.mainconfig["OSCProcess"]:
+                """Process task that will get OSC commands"""
+                task_osc_process = asyncio.create_task(osc_d10.osc.osc_process.run_process(osc_manager),
+                name="OSCProcess")
+                task_objects.append(task_osc_process)
+                n_tasks += 1
         else:
             print_main_warning(
                 "Skipping OSCBridge, and OSCToButtplug, OSCBridge = true to enable it in Mainconfig.json")
