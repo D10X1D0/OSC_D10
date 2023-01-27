@@ -16,7 +16,7 @@ def print_process_err(msg: str) -> None:
 
 def run_respond(manager: OSCServerManager, mappings: tuple) -> None:
     # load the osc commands in the dispatcher and store how many we loaded
-    n_commands = populate_dispatcher_respond(manager,mappings)
+    n_commands = populate_dispatcher_respond(manager, mappings)
     if n_commands < 1:
         print_process_err("There were no commands loaded for OSC Process. Turning this part off.")
         return

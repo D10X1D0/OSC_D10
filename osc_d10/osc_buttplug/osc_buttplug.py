@@ -115,13 +115,13 @@ def device_removed(emitter, dev: ButtplugClientDevice) -> None:
     print_buttplug(f"Device removed: {dev}")
 
 
-async def vibrate_device(device: ButtplugClientDevice, devicecommand) -> None:
+async def vibrate_device(device: ButtplugClientDevice, device_command) -> None:
     """Ask the buttplug server to vibrate the device motor/s, rounds the speed to be inside 0->1 range"""
     # await device.send_vibrate_cmd({m: value})
-    name = devicecommand[0][0]
-    motors = devicecommand[0][1][1]
+    name = device_command[0][0]
+    motors = device_command[0][1][1]
     # make sure the value is inside the range 0->1
-    value = max(min(float(devicecommand[1]), 1.0), 0.0)
+    value = max(min(float(device_command[1]), 1.0), 0.0)
     command = dict()
     if isinstance(motors, str):
         # I'ts one number, indicating all motors should be set
