@@ -3,9 +3,9 @@ Python OSC bridge to other apps and send OSC messages back.
 Currently able to talk with [Buttplug.io](https://buttplug.io/) , tested with [Intiface](https://intiface.com/)
 
 # How to run
-Have a python interpreter and/or IDE installed. (Tested in Python 3.11 using pycharm)
+Have a python interpreter and/or IDE installed (Tested in Python 3.11 using pycharm).
 Clone this repo inside a python project.
-Install the python module dependencies listed inside requirements.txt
+Install the python module dependencies listed inside requirements.txt.
 Run main.py
 
 I used color codes to print to console, they look like this "'\033[95m'"

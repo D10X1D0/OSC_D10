@@ -29,7 +29,7 @@ def print_buttplug_warning(text) -> None:
     print(msg)
 
 
-def device_dump(dev: ButtplugClientDevice, serializeddevice: dict()) -> None:
+def device_dump(dev: ButtplugClientDevice, serialized_device: dict()) -> None:
     """Create a devicename.json file with all it's supported commands"""
     d_name = dev.name
     try:
@@ -38,7 +38,7 @@ def device_dump(dev: ButtplugClientDevice, serializeddevice: dict()) -> None:
         print_buttplug(f"Dump file already exists, skipping creating it. {d_name}")
     except FileNotFoundError:
         print_buttplug(f"Dump file does not exist, creating it. {d_name}")
-        create_default_file(f"{d_name}.json", serializeddevice)
+        create_default_file(f"{d_name}.json", serialized_device)
     except Exception as e:
         print_buttplug(f"Error creating a dump file for {d_name} : {e}")
 
@@ -117,18 +117,17 @@ def device_removed(emitter, dev: ButtplugClientDevice) -> None:
 
 async def vibrate_device(device: ButtplugClientDevice, device_command) -> None:
     """Ask the buttplug server to vibrate the device motor/s, rounds the speed to be inside 0->1 range"""
-    # await device.send_vibrate_cmd({m: value})
     name = device_command[0][0]
     motors = device_command[0][1][1]
     # make sure the value is inside the range 0->1
     value = max(min(float(device_command[1]), 1.0), 0.0)
     command = dict()
-    if isinstance(motors, str):
+    if type(motors) is str:
         # I'ts one number, indicating all motors should be set
         # I found that my device didn't vibrate all motors sending just a float after sending a tuple once,
         # so I'm setting all motors.
-        nmotors = device.allowed_messages["VibrateCmd"].feature_count
-        for i in range(nmotors):
+        motors = device.allowed_messages["VibrateCmd"].feature_count
+        for i in range(motors):
             command[i] = value
 
     else:
@@ -206,23 +205,20 @@ async def device_probe(device_command, bp_client: ButtplugClient) -> None:
         await bp_client.start_scanning()
         await asyncio.sleep(1)
         await bp_client.stop_scanning()
-        # test rotating device without connecting one to interface delete me after testing
-        # if command == myclasses.BpDevCommand.Rotate.value:
-        #    await rotatedevice(dev, item)
-    else:
-        for key in bp_client.devices.keys():
-            if bp_client.devices[key].name == name:
-                # print(f"device is connected , command {command}")
-                device = bp_client.devices[key]
-                if command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Vibrate.value:
-                    await vibrate_device(device, device_command)
-                elif command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Rotate.value:
-                    await rotate_device(device, device_command)
-                elif command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Stop.value:
-                    print_buttplug(f"Stoping : {name}")
-                    await bp_client.devices[key].send_stop_device_cmd()
-            else:
-                print_buttplug(f"no device found to match this name : {name} or command : {command}")
+        return
+    # Check if the device with that name is listed in the connected dict().
+    for key in bp_client.devices.keys():
+        if bp_client.devices[key].name == name:
+            device = bp_client.devices[key]
+            if command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Vibrate.value:
+                await vibrate_device(device, device_command)
+            elif command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Rotate.value:
+                await rotate_device(device, device_command)
+            elif command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Stop.value:
+                print_buttplug(f"Stoping : {name}")
+                await bp_client.devices[key].send_stop_device_cmd()
+        # else:
+        #   print_buttplug(f"no device found to match this name : {name} or command : {command}")
 
 
 async def listen_que_loop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -> None:
@@ -238,6 +234,7 @@ async def listen_que_loop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugCli
                 print_buttplug(f"Client disconnected from Interface desktop.")
                 raise ConnectionError
         except ConnectionError:
+            print_buttplug(f"Client disconnected from Interface desktop.")
             break
 
 
