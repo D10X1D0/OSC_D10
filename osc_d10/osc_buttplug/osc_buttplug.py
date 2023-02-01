@@ -235,11 +235,16 @@ async def listen_que_loop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugCli
             if bpclient.connector.connected:
                 await device_probe(device_command, bpclient)
             else:
-                print_buttplug(f"Client disconnected from Interface desktop.")
+                print_buttplug(f"Client disconnected from Intiface desktop.")
+                del device_command
                 raise ConnectionError
         except ConnectionError:
+            del device_command
             print_buttplug(f"Client disconnected from Interface desktop.")
             break
+        finally:
+            # clear the task from the queue (leaks memory really fast if it's not cleared).
+            q_listen.task_done()
 
 
 async def clear_queue(q: janus.AsyncQueue[Any]) -> None:
