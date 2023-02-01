@@ -54,7 +54,7 @@ async def main() -> None:
             if config.mainconfig["OSCProcess"]:
                 """Process task that will get OSC commands"""
                 task_osc_process = asyncio.create_task(osc_d10.osc.osc_process.run_process(osc_manager),
-                name="OSCProcess")
+                                                       name="OSCProcess")
                 task_objects.append(task_osc_process)
                 n_tasks += 1
         else:

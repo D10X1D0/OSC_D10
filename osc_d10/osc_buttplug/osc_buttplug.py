@@ -202,9 +202,7 @@ async def device_probe(device_command, bp_client: ButtplugClient) -> None:
         print_buttplug(f"Device not connected : {name}")
         # we tell the server to stop and scan again.
         # this will help not to do a full reset after a dropped bluetooth connection
-        await bp_client.start_scanning()
-        await asyncio.sleep(1)
-        await bp_client.stop_scanning()
+        await rescan_devices(bp_client)
         return
     # Check if the device with that name is listed in the connected dict().
     for key in bp_client.devices.keys():
@@ -217,8 +215,14 @@ async def device_probe(device_command, bp_client: ButtplugClient) -> None:
             elif command == osc_d10.osc_buttplug.osc_buttplug_manager.BpDevCommand.Stop.value:
                 print_buttplug(f"Stoping : {name}")
                 await bp_client.devices[key].send_stop_device_cmd()
-        # else:
-        #   print_buttplug(f"no device found to match this name : {name} or command : {command}")
+        else:
+            print_buttplug(f"no device found to match this name : {name} - {device} or command : {command}")
+
+
+async def rescan_devices(bp_client: ButtplugClient):
+    await bp_client.start_scanning()
+    await asyncio.sleep(10)
+    await bp_client.stop_scanning()
 
 
 async def listen_que_loop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugClient) -> None:
@@ -297,8 +301,8 @@ async def run_osc_buttplug(osc_manager: OSCServerManager) -> None:
     # run the client/connector in a looop to reset themselves if the connetion is dropped.
     # this should prevent relaunching the full script if the ws connection is dropped
     # Queque with two sides, Async and Sync, used to comunicate with the osc server
-    que_buttplug: janus.Queue[Any] = janus.Queue(20)
     try:
+        que_buttplug: janus.Queue[Any] = janus.Queue(20)
         # manager object that will keep track of the configuration and some usefull objects
         bp_manager = osc_d10.osc_buttplug.osc_buttplug_manager.OSCButtplugManager(que_buttplug)
         # pass the syncronous version for the dipatcher, runs blocking code.
