@@ -236,10 +236,8 @@ async def listen_que_loop(q_listen: janus.AsyncQueue[Any], bpclient: ButtplugCli
                 await device_probe(device_command, bpclient)
             else:
                 print_buttplug(f"Client disconnected from Intiface desktop.")
-                del device_command
                 raise ConnectionError
         except ConnectionError:
-            del device_command
             print_buttplug(f"Client disconnected from Interface desktop.")
             break
         finally:
@@ -251,6 +249,7 @@ async def clear_queue(q: janus.AsyncQueue[Any]) -> None:
     """sync/async janus queue doesn't have a clear method, so we're geting all items to clear it manually."""
     for _ in range(q.qsize()):
         await q.get()
+        await q.task_done()
 
 
 async def connected_client(bp_manager: OSCButtplugManager) -> ButtplugClient:
@@ -292,6 +291,7 @@ async def run_client_task(client: ButtplugClient, q_in_l: janus.AsyncQueue[Any])
         await client.stop_scanning()
         await client.disconnect()
     except ButtplugClientConnectorError as e:
+        task2.cancelled()
         print_buttplug_warning(e.message)
         return
 
