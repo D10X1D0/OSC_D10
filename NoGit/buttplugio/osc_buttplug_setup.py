@@ -3,7 +3,7 @@ import janus
 import osc_d10.osc.osc_server
 
 from osc_d10.osc.osc_server_manager import OSCServerManager
-from osc_d10.osc_buttplug.osc_buttplug_manager import OSCButtplugManager, BpDevCommand
+from NoGit.buttplugio.osc_buttplug_manager import OSCButtplugManager, BpDevCommand
 from osc_d10.tools.console_colors import bcolors
 from osc_d10.tools.io_files import read_json_file
 

@@ -1,38 +1,29 @@
 from enum import Enum
 
+from buttplug import Client, WebsocketConnector, ProtocolSpec
 import janus
-
-
-class BpDevCommand(Enum):
-    # enum of valid commands for devices in osctobutplug
-    # they have to match 1:1 in value with BpDevCommandInterface
-    Stop = 1
-    Vibrate = 2
-    Rotate = 3
-
-
-class BpDevCommandInterface(Enum):
-    # enum of valid commands for devices in Buttplug and controllable in osctobutplug
-    # they have to match 1:1 in value with BpDevCommand
-    StopDeviceCmd = 1
-    VibrateCmd = 2
-    RotateCmd = 3
 
 
 class OSCButtplugManager:
     """Class to store and access buttplug data"""
-    def __init__(self, queue: janus.Queue):
-        # buttplug client parameters
-        self.client_name = "OSC_D10"
-        self.web_sockets = "ws://127.0.0.1:12345"
+    def __init__(self, client: Client, queue: janus.Queue[any], devices_configuration) -> None:
         # queue
         self.queue = queue
+        # buttplug client parameters
+        self.client = client
+        self.devices_configuration = devices_configuration
 
     def get_queue(self):
         return self.queue
 
-    def get_client_name(self) -> str:
-        return self.client_name
+    def get_client(self):
+        return self.client
 
-    def get_web_sockets(self) -> str:
-        return self.web_sockets
+    def set_client(self, client):
+        self.client = client
+
+    def get_devices_configuration(self):
+        return self.devices_configuration
+
+    def set_devices_configuration(self, new_configuration):
+        self.devices_configuration = new_configuration

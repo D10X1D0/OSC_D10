@@ -1,4 +1,4 @@
-class device_configuration():
+class DeviceConfiguration:
     def __init__(self):
         self.name = None
         self.actuators = None
