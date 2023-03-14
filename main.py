@@ -1,10 +1,10 @@
 import asyncio
 
-import myclasses
-import osc_d10
+import configuration
 from osc_d10.osc import osc_server_manager
 from osc_d10.osc.osc_process import run_process
-from osc_d10.osc_buttplug import osc_buttplug
+from osc_d10.osc.osc_server import run_osc_bridge
+from osc_d10.osc_buttplug.osc_buttplug import run_osc_to_buttplug
 
 from osc_d10.tools.console_colors import bcolors
 
@@ -31,7 +31,7 @@ async def cancel_me(n_tasks) -> None:
 
 async def main() -> None:
     # reading the main configuration file
-    config = myclasses.MainData()
+    config = configuration.MainData()
     if not config.mainconfig:
         print_main_warning("Mainconfig.json has errors or can't be accessed, shutting down.")
         return
@@ -48,12 +48,12 @@ async def main() -> None:
                 and get info back with a sync/async janus.Queue 
             """
             osc_manager = osc_server_manager.OSCServerManager(config.mainconfig)
-            osc_bridge = loop.run_in_executor(None, osc_d10.osc.osc_server.run_osc_bridge, osc_manager)
+            osc_bridge = loop.run_in_executor(None, run_osc_bridge, osc_manager)
             n_tasks += 1
             # OSCprocess async side
             if config.mainconfig["OSCProcess"]:
                 """Process task that will get OSC commands"""
-                task_osc_process = asyncio.create_task(osc_d10.osc.osc_process.run_process(osc_manager),
+                task_osc_process = asyncio.create_task(run_process(osc_manager),
                                                        name="OSCProcess")
                 task_objects.append(task_osc_process)
                 n_tasks += 1
@@ -62,8 +62,9 @@ async def main() -> None:
                 "Skipping OSCBridge, and OSCToButtplug, OSCBridge = true to enable it in Mainconfig.json")
         if config.mainconfig["OSCtoButtplug"]:
             # osctobutplug will be the buttplug client/connector to talk to Intiface and control devices.
-            task_btplug = asyncio.create_task(osc_d10.osc_buttplug.osc_buttplug.run_osc_buttplug(osc_manager),
-                                              name="OSCtoButtplug")
+            task_btplug = asyncio.create_task(
+                run_osc_to_buttplug(osc_manager),
+                name="OSCtoButtplug")
             task_objects.append(task_btplug)
             n_tasks += 1
 

@@ -1,6 +1,6 @@
 from pythonosc import udp_client
 
-import myclasses
+import configuration
 
 # custom dispatcher with a bug patched
 from osc_d10.osc import osc_dispatcher_d10
@@ -8,7 +8,7 @@ from osc_d10.osc import osc_dispatcher_d10
 
 class OSCServerManager:
     """Class to store and share server data and functions"""
-    def __init__(self, main_configuration: myclasses.MainData.mainconfig) -> None:
+    def __init__(self, main_configuration: configuration.MainData.mainconfig) -> None:
         self.osc_debug = main_configuration["OSCBridgeDEBUG"]
         self.server_ip = main_configuration["OSCBListenIP"]
         self.server_port = main_configuration["OSCBListenPort"]
@@ -25,7 +25,7 @@ class OSCServerManager:
 
     def unmap_osc(self, osc_adress, function, *args) -> None:
         """un-registers a function to listen to an osc adress"""
-        print("not implemented ")
+        self.dispatcher.unmap(osc_adress, function)
 
     def default_dispatcher_handler(self, func_name):
         self.dispatcher.set_default_handler(func_name)
