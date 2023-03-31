@@ -1,2 +1,3 @@
 janus~=1.0.0
 python-osc~=1.8.1
+buttplug-py~=0.2.0

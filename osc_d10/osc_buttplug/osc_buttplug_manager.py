@@ -1,6 +1,6 @@
 from enum import Enum
 
-from buttplug import Client, WebsocketConnector, ProtocolSpec
+from buttplug import Client, WebsocketConnector, ProtocolSpec, Device
 import janus
 
 from osc_d10.osc_buttplug.osc_buttplug_configuration import OSCButtplugConfiguration
@@ -33,6 +33,12 @@ class OSCButtplugManager:
     def get_client_name(self) -> str:
         return self.configuration.get_client_name()
 
-    def get_websockets(self) -> str:
-        return self.configuration.get_web_socktes()
+    def get_web_sockets(self) -> str:
+        return self.configuration.get_web_sockets()
+
+    def update_configuration_from_client_devices(self, client_devices: dict[int, Device]):
+        self.configuration.device_configuration_from_connected(self.get_devices_configuration(), client_devices)
+
+
+
 

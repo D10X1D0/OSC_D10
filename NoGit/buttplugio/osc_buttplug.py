@@ -2,8 +2,7 @@ import asyncio
 from typing import Any
 
 import janus
-import buttplug
-from buttplug import ProtocolSpec, Client, WebsocketConnector
+from buttplug import ProtocolSpec, Client, WebsocketConnector, Device
 
 from NoGit.buttplugio.osc_buttplug_manager import OSCButtplugManager
 
@@ -25,7 +24,7 @@ def print_buttplug_warning(text) -> None:
     print(msg)
 
 
-async def device_probe(device_command: buttplug.Device, bp_client: buttplug.Client) -> None:
+async def device_probe(device_command: Device, bp_client: Client) -> None:
     """Sends the incoming command to a buttplug device."""
     # look for a toy that matches the name passed, and if it is present execute the command
     name = device_command[0][0]
@@ -56,7 +55,7 @@ async def rescan_devices(bp_client: [any]):
     await bp_client.stop_scanning()
 
 
-async def listen_que_loop(q_listen: janus.AsyncQueue[any], bpclient: buttplug.Client) -> None:
+async def listen_que_loop(q_listen: janus.AsyncQueue[any], bpclient: Client) -> None:
     """Loop that reads incoming OSC commands and sends them to the buttplug device"""
     print_buttplug("listening for commands from oscbridge")
     while True:
@@ -83,7 +82,7 @@ async def clear_queue(q: janus.AsyncQueue[any]) -> None:
         await q.task_done()
 
 
-async def connected_client(bp_manager: OSCButtplugManager) -> buttplug.Client:
+async def connected_client(bp_manager: OSCButtplugManager) -> Client:
     """Returns a configured and connected buttplug client. Loops until a connection is made."""
     while True:
         try:
@@ -104,7 +103,7 @@ async def connected_client(bp_manager: OSCButtplugManager) -> buttplug.Client:
             await asyncio.sleep(1)
 
 
-async def run_client_task(client: buttplug.Client, q_in_l: janus.AsyncQueue[Any]) -> None:
+async def run_client_task(client: Client, q_in_l: janus.AsyncQueue[Any]) -> None:
     """Starts the buttplug client scanning and reading the incoming commands from the queue inside a task."""
     try:
         await client.start_scanning()
