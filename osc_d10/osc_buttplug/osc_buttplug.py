@@ -268,7 +268,7 @@ async def connected_client(bp_manager: OSCButtplugManager) -> ButtplugClient:
             client.device_added_handler += device_added
             client.device_removed_handler += device_removed
             """Try to connect to the server"""
-            print_buttplug("Trying to  connect to  Interface server")
+            print_buttplug(f"Trying to  connect to  Interface server {ws}")
             await client.connect(connector)
             print_buttplug("Could connect to  Interface server")
             return client
@@ -309,7 +309,7 @@ async def run_osc_buttplug(osc_manager: OSCServerManager) -> None:
     try:
         que_buttplug: janus.Queue[Any] = janus.Queue(20)
         # manager object that will keep track of the configuration and some usefull objects
-        bp_manager = osc_d10.osc_buttplug.osc_buttplug_manager.OSCButtplugManager(que_buttplug)
+        bp_manager = osc_d10.osc_buttplug.osc_buttplug_manager.OSCButtplugManager(que_buttplug, osc_manager)
         # pass the syncronous version for the dipatcher, runs blocking code.
         osc_buttplug_setup.run_initial_setup(osc_manager, bp_manager)
     except Exception as e:
