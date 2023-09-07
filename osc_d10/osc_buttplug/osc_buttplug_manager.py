@@ -1,6 +1,7 @@
 from enum import Enum
 
 import janus
+from osc_d10.osc.osc_server_manager import OSCServerManager
 
 
 class BpDevCommand(Enum):
@@ -21,10 +22,20 @@ class BpDevCommandInterface(Enum):
 
 class OSCButtplugManager:
     """Class to store and access buttplug data"""
-    def __init__(self, queue: janus.Queue):
+    def __init__(self, queue: janus.Queue,  config: OSCServerManager):
         # buttplug client parameters
         self.client_name = "OSC_D10"
-        self.web_sockets = "ws://127.0.0.1:12345"
+
+        self.web_sockets = "{protocol}://{ip}:{port}"
+        if config.intiface_protocol == "":
+            self.web_sockets = self.web_sockets.replace("{protocol}://", "")
+
+        if config.intiface_port == "":
+            self.web_sockets = self.web_sockets.replace(":{port}", "")
+
+        self.web_sockets = self.web_sockets.format(protocol = config.intiface_protocol,
+                                                   ip = config.intiface_ip,
+                                                   port = config.intiface_port)
         # queue
         self.queue = queue
 

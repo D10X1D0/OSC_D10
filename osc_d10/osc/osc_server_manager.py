@@ -14,6 +14,9 @@ class OSCServerManager:
         self.server_port = main_configuration["OSCBListenPort"]
         self.client_ip = main_configuration["OSCSendIP"]
         self.client_port = main_configuration["OSCSendPort"]
+        self.intiface_protocol = main_configuration["IntifaceProtocol"]
+        self.intiface_ip = main_configuration["IntifaceIP"]
+        self.intiface_port = main_configuration["IntifacePort"]
         self.dispatcher = osc_dispatcher_d10.D10Dispatcher()
         self.client = udp_client.SimpleUDPClient(self.client_ip, self.client_port)
         self.mapped_commands = 0

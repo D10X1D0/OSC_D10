@@ -8,7 +8,9 @@ maindefault = {
     "OSCBListenIP": "127.0.0.1", "OSCBListenPort": 9001,
     "OSCSendIP": "127.0.0.1", "OSCSendPort": 9000,
     "OSCProcess": False,
-    "OSCtoButtplug": True
+    "OSCtoButtplug": True,
+    "IntifaceProtocol": "ws",
+    "IntifaceIP": "127.0.0.1", "IntifacePort": 12345
 }
 
 
